@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garry's Mod Menu</title>
+    <title>Garry's Mod Menu - Quality Restored</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- GLOBAL RESET & TYPOGRAPHY --- */
+        /* --- CORE STYLING & TYPOGRAPHY --- */
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
             overflow: hidden; background-color: #000;
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-family: "Helvetica Neue", Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* --- BACKGROUND KEN BURNS ENGINE --- */
+        /* --- KEN BURNS BACKGROUND ENGINE --- */
         .bg-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
@@ -37,11 +37,11 @@
         .group-space { margin-top: 20px; }
         .version-label {
             position: fixed; bottom: 15px; right: 20px;
-            color: rgba(255, 255, 255, 0.6); font-size: 14px;
+            color: rgba(255, 255, 255, 0.4); font-size: 14px;
             font-weight: 700; text-shadow: 1px 1px 0px black; z-index: 10;
         }
 
-        /* --- UNIVERSAL OVERLAY SYSTEM --- */
+        /* --- UNIVERSAL MODULAR WINDOW --- */
         #universal-overlay {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; z-index: 200;
@@ -58,56 +58,53 @@
         .window-body { display: flex; flex: 1; gap: 10px; overflow: hidden; }
         
         /* Left Sidebar */
-        .sidebar { width: 200px; display: flex; flex-direction: column; gap: 5px; }
+        .sidebar { width: 200px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
         .side-item {
-            color: white; font-size: 14px; font-weight: 700;
-            cursor: pointer; text-shadow: 1px 1px 0px black;
+            color: white; font-size: 13px; font-weight: 700;
+            cursor: pointer; text-shadow: 1px 1px 0px black; padding: 2px 0;
         }
         .side-item:hover, .side-item.active { color: #FFFF00; }
 
-        /* Content Canvas */
-        .content-area {
-            flex: 1; background: white; border: 1px solid #ccc;
-            overflow-y: auto; display: block;
+        /* Content Area */
+        .content-area { flex: 1; background: white; border: 1px solid #ccc; overflow-y: auto; position: relative; }
+
+        /* Right Sidebar (Start New Game Settings) */
+        .right-sidebar { 
+            width: 250px; background: #f0f0f0; border-left: 1px solid #ccc; 
+            padding: 15px; font-size: 13px; color: #333; display: none;
         }
 
-        /* --- MAP SELECTION (START NEW GAME) --- */
+        /* --- MAP GRID --- */
         .map-grid { display: flex; gap: 20px; padding: 20px; flex-wrap: wrap; }
-        .map-item { width: 150px; cursor: pointer; text-align: center; }
-        .map-thumb { 
-            width: 100%; height: 85px; background: #333; 
-            border: 2px solid transparent; transition: border 0.1s;
-        }
+        .map-item { width: 140px; cursor: pointer; text-align: center; }
+        .map-thumb { width: 100%; height: 80px; background: #333; border: 2px solid transparent; }
         .map-item.selected .map-thumb { border-color: #3498db; }
-        .map-name { font-size: 12px; font-weight: 700; color: #333; margin-top: 5px; }
+        .map-name { font-size: 11px; font-weight: 700; color: #333; margin-top: 5px; }
         .map-item.selected .map-name { text-decoration: underline; color: #3498db; }
 
-        /* Right Settings Sidebar */
-        .right-sidebar { 
-            width: 260px; background: #f4f4f4; border-left: 1px solid #ccc; 
-            padding: 15px; font-size: 13px; color: #333; overflow-y: auto;
-        }
-        .setting-group { margin-bottom: 18px; }
-        .setting-label { font-weight: 700; margin-bottom: 6px; display: block; }
-        .clickable-input { width: 90%; padding: 5px; border: 1px solid #bbb; cursor: pointer; }
-
-        /* --- SERVER LIST ROWS --- */
-        .server-row {
-            display: flex; align-items: center; padding: 10px 15px;
-            border-bottom: 1px solid #eee; cursor: pointer;
-        }
+        /* --- SERVER LIST --- */
+        .server-row { display: flex; align-items: center; padding: 8px 15px; border-bottom: 1px solid #eee; cursor: pointer; }
         .server-row:hover { background: #f0f8ff; }
+        .gm-badge { background: #3498db; color: white; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 8px; font-weight: bold; }
 
-        /* --- TERMINAL ERROR --- */
+        /* --- TERMINAL CONNECTION ERROR --- */
         #terminal-overlay {
             display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             z-index: 500; justify-content: center; align-items: center;
         }
         .terminal-box {
-            background: #222; border: 1px solid #444; width: 480px; padding: 25px;
-            color: #bbb; font-family: 'Roboto Mono', monospace; font-size: 14px;
-            box-shadow: 0 0 40px rgba(0,0,0,1);
+            background: #2a2a2a; border: 1px solid #444; width: 460px; padding: 25px;
+            color: #ccc; font-family: 'Roboto Mono', monospace; font-size: 14px;
+            box-shadow: 0 0 40px rgba(0,0,0,1); position: relative;
+        }
+        .terminal-x { position: absolute; top: 10px; right: 15px; color: #888; cursor: pointer; font-weight: bold; }
+
+        /* --- OPTIONS OVERLAY --- */
+        #options-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 400; justify-content: center; align-items: center;
         }
 
         .back-btn {
@@ -126,14 +123,19 @@
 
     <div id="terminal-overlay" onclick="closeTerminal()">
         <div class="terminal-box" onclick="event.stopPropagation()">
-            <div style="color:white; font-weight:bold; margin-bottom:15px;">CONNECTION ERROR</div>
+            <span class="terminal-x" onclick="closeTerminal()">[X]</span>
+            <div style="color:white; font-weight:bold; margin-bottom:15px;">Connection Error</div>
             <div>Connecting to 192.168.100.42:27015...</div>
             <div style="margin-top:10px;">Retrying connection to server (1)...</div>
             <div>Retrying connection to server (2)...</div>
             <div>Retrying connection to server (3)...</div>
             <div>Retrying connection to server (4)...</div>
-            <div style="color:#ff4444; margin-top:20px; font-weight:bold;">FAILED TO CONNECT AFTER 4 RETRIES.</div>
+            <div style="color:#ff5555; margin-top:20px; font-weight:bold;">Unable to connect to server after 4 retries.</div>
         </div>
+    </div>
+
+    <div id="options-overlay" onclick="closeOptions()">
+        <img src="options.png" style="max-width:90%;" onclick="event.stopPropagation()">
     </div>
 
     <div id="universal-overlay">
@@ -142,14 +144,19 @@
             <div class="window-body">
                 <div class="sidebar" id="win-sidebar"></div>
                 <div class="content-area" id="win-content"></div>
-                <div class="right-sidebar" id="win-right-sidebar" style="display:none;"></div>
+                <div class="right-sidebar" id="win-right-sidebar">
+                    <div style="font-weight:bold; margin-bottom:10px;">Settings</div>
+                    <div style="margin-bottom:10px;">Max Players: <select><option>Single Player</option><option>2 Players</option></select></div>
+                    <div style="margin-bottom:10px;">Server Name: <input type="text" value="Gmod Server" style="width:100px;"></div>
+                    <div><label><input type="checkbox" checked> Peer to Peer</label></div>
+                </div>
             </div>
             <div class="back-btn" onclick="closeWindow()">Back</div>
         </div>
     </div>
 
     <div id="ui-wrapper">
-        <img src="GmodLOGO.png" alt="" class="logo">
+        <img src="GmodLOGO.png" class="logo">
         <div class="menu-container">
             <a class="menu-item" onclick="openStartGame()">Start New Game</a>
             <a class="menu-item" onclick="openServerBrowser()">Find Multiplayer Game</a>
@@ -159,7 +166,7 @@
             <a class="menu-item" onclick="openWindow('Saves')">Saves</a>
             <a class="menu-item" onclick="openWindow('Demos')">Demos</a>
             <div class="group-space"></div>
-            <a class="menu-item">Options</a>
+            <a class="menu-item" onclick="openOptions()">Options</a>
             <div class="group-space"></div>
             <a class="menu-item" onclick="window.close()">Quit</a>
         </div>
@@ -170,20 +177,57 @@
         const hoverSnd = new Audio('ui_hover.wav');
         const clickSnd = new Audio('ui_click.wav');
 
+        const sidebarData = {
+            'Addons': ['Subscribed', 'Trending', 'Top Rated'],
+            'Dupes': ['My Dupes', 'Subscribed', 'Trending'],
+            'Saves': ['My Saves', 'Subscribed', 'Currently Popular', 'Top Rated', 'Latest Uploads', 'Followed', 'Favorites', 'Friends Uploads', 'My Uploads', 'Open Saves Folder'],
+            'Demos': ['My Demos', 'Trending']
+        };
+
+        let servers = [
+            { name: "ICE - CWRP | Phase II", gm: "CWRP", p: 84, m: 100 },
+            { name: "DarkRP - Custom Jobs", gm: "DarkRP", p: 110, m: 128 },
+            { name: "Zombie Survival | US West", gm: "ZS", p: 32, m: 64 },
+            { name: "Sandbox - Build", gm: "Sandbox", p: 5, m: 16 },
+            { name: "Empty Playground", gm: "Sandbox", p: 0, m: 32 }
+        ];
+
+        // --- CORE FUNCTIONS ---
+        function openOptions() { document.getElementById('options-overlay').style.display = 'flex'; clickSnd.play(); }
+        function closeOptions() { document.getElementById('options-overlay').style.display = 'none'; }
+        function openTerminal() { document.getElementById('terminal-overlay').style.display = 'flex'; clickSnd.play(); }
+        function closeTerminal() { document.getElementById('terminal-overlay').style.display = 'none'; }
+        function closeWindow() { document.getElementById('universal-overlay').style.display = 'none'; }
+
+        // --- UNIVERSAL WINDOW LOGIC ---
+        function openWindow(type) {
+            const overlay = document.getElementById('universal-overlay');
+            const sidebar = document.getElementById('win-sidebar');
+            const content = document.getElementById('win-content');
+            document.getElementById('win-title').innerText = type;
+            document.getElementById('win-right-sidebar').style.display = 'none';
+
+            sidebar.innerHTML = '';
+            sidebarData[type].forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'side-item';
+                div.innerText = item;
+                div.onmouseenter = () => hoverSnd.play();
+                sidebar.appendChild(div);
+            });
+
+            content.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#999; font-weight:bold; font-size:24px;">No ${type.toLowerCase()} found!</div>`;
+            overlay.style.display = 'block';
+            clickSnd.play();
+        }
+
         // --- START NEW GAME ---
         function openStartGame() {
             const overlay = document.getElementById('universal-overlay');
-            const rightBar = document.getElementById('win-right-sidebar');
-            document.getElementById('win-title').innerText = "Start New Game";
+            document.getElementById('win-title').innerText = "Sandbox";
             document.getElementById('win-sidebar').innerHTML = '<div class="side-item active">Sandbox</div>';
+            document.getElementById('win-right-sidebar').style.display = 'block';
             
-            rightBar.style.display = 'block';
-            rightBar.innerHTML = `
-                <div class="setting-group"><span class="setting-label">Max Players</span><select class="clickable-input"><option>Single Player</option><option>2 Players</option><option>8 Players</option></select></div>
-                <div class="setting-group"><span class="setting-label">Server Name</span><input type="text" class="clickable-input" value="Garry's Mod Server"></div>
-                <div class="setting-group"><label style="cursor:pointer"><input type="checkbox" checked> Peer to Peer</label></div>
-            `;
-
             document.getElementById('win-content').innerHTML = `
                 <div class="map-grid">
                     <div class="map-item selected" onclick="selectMap(this)">
@@ -196,6 +240,7 @@
                     </div>
                 </div>`;
             overlay.style.display = 'block';
+            clickSnd.play();
         }
 
         function selectMap(el) {
@@ -208,42 +253,25 @@
         function openServerBrowser() {
             const overlay = document.getElementById('universal-overlay');
             const content = document.getElementById('win-content');
-            document.getElementById('win-right-sidebar').style.display = 'none';
             document.getElementById('win-title').innerText = "Server List";
-            document.getElementById('win-sidebar').innerHTML = '<div class="side-item active">Internet</div>';
+            document.getElementById('win-sidebar').innerHTML = '<div class="side-item active">Internet</div><div class="side-item">Favorites</div>';
+            document.getElementById('win-right-sidebar').style.display = 'none';
             content.innerHTML = '';
             overlay.style.display = 'block';
 
-            const servers = [
-                { name: "ICE - CWRP | Phase II", players: "84 / 100" },
-                { name: "Zombie Survival | US West", players: "32 / 64" },
-                { name: "DarkRP - Custom Jobs", players: "110 / 128" }
-            ];
-
+            servers.sort((a, b) => b.p - a.p);
             servers.forEach((s, i) => {
                 setTimeout(() => {
                     const row = document.createElement('div');
                     row.className = 'server-row';
-                    row.innerHTML = `<div style="flex:1; font-weight:700;">${s.name}</div><div style="color:#666;">${s.players}</div>`;
+                    row.innerHTML = `<div style="flex:1; display:flex; align-items:center;"><span class="gm-badge">${s.gm}</span> <b>${s.name}</b></div><div style="color:#555; margin-right:15px;">${s.p} / ${s.m}</div><div style="color:#3498db; font-size:18px;">▶</div>`;
                     row.onmouseenter = () => hoverSnd.play();
                     row.onmousedown = openTerminal;
                     content.appendChild(row);
-                }, i * 150);
+                }, i * 150); // Staggered load
             });
+            clickSnd.play();
         }
-
-        function openWindow(type) {
-            const overlay = document.getElementById('universal-overlay');
-            document.getElementById('win-right-sidebar').style.display = 'none';
-            document.getElementById('win-title').innerText = type;
-            document.getElementById('win-sidebar').innerHTML = `<div class="side-item active">Subscribed</div>`;
-            document.getElementById('win-content').innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#666; font-size:24px; font-weight:700;">No ${type.toLowerCase()} found!</div>`;
-            overlay.style.display = 'block';
-        }
-
-        function openTerminal() { document.getElementById('terminal-overlay').style.display = 'flex'; clickSnd.play(); }
-        function closeTerminal() { document.getElementById('terminal-overlay').style.display = 'none'; }
-        function closeWindow() { document.getElementById('universal-overlay').style.display = 'none'; }
 
         // --- BACKGROUND LOGIC ---
         let currentIdx = 1;
@@ -265,8 +293,13 @@
         window.onload = () => {
             document.getElementById('bg-1').style.backgroundImage = `url('${getImgPath()}')`;
             setInterval(swapBackground, 10000);
-            // Minute Refresh
-            setInterval(() => { if(document.getElementById('win-title').innerText === "Server List") openServerBrowser(); }, 60000);
+            // Minute interval refresh for servers
+            setInterval(() => {
+                if (document.getElementById('win-title').innerText === "Server List") {
+                    servers.forEach(s => s.p = Math.max(0, Math.min(s.m, s.p + (Math.floor(Math.random() * 3) - 1))));
+                    openServerBrowser();
+                }
+            }, 60000);
         };
     </script>
 </body>
