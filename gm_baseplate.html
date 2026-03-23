@@ -62,20 +62,11 @@
 
         /* --- HEALTH HUD & DAMAGE OVERLAYS --- */
         #health-hud {
-            position: absolute;
-            bottom: 35px;
-            left: 35px;
-            background: rgba(0, 0, 0, 0.65);
-            padding: 8px 18px;
-            border-radius: 4px;
-            display: none; 
-            align-items: baseline;
-            gap: 12px;
-            color: #ffcc00; 
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-            z-index: 50;
-            pointer-events: none;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+            position: absolute; bottom: 35px; left: 35px;
+            background: rgba(0, 0, 0, 0.65); padding: 8px 18px; border-radius: 4px;
+            display: none; align-items: baseline; gap: 12px;
+            color: #ffcc00; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            z-index: 50; pointer-events: none; box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
         }
         .health-label { font-size: 14px; font-weight: bold; }
         .health-value { font-size: 42px; font-weight: bold; line-height: 1; }
@@ -92,11 +83,22 @@
             pointer-events: none; display: none;
         }
 
+        /* --- NOTIFICATIONS (UNDO) --- */
+        #notification-container {
+            position: absolute; top: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 5px; z-index: 100; pointer-events: none;
+        }
+        .noti-box {
+            background: rgba(0, 0, 0, 0.6); color: white;
+            padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: bold;
+            opacity: 1; transition: opacity 0.5s ease;
+        }
+        .noti-arrow { color: #00bfff; font-size: 16px; margin-right: 5px; }
+
         /* --- GMOD HINTS SYSTEM --- */
         #hint-container {
             position: absolute; right: 20px; bottom: 30%; 
-            display: flex; flex-direction: column; gap: 8px; z-index: 50;
-            pointer-events: none; 
+            display: flex; flex-direction: column; gap: 8px; z-index: 50; pointer-events: none; 
         }
         .gmod-hint {
             background: rgba(0, 0, 0, 0.65); color: white; font-size: 14px; font-weight: bold;
@@ -106,57 +108,53 @@
             transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .gmod-hint.show { opacity: 1; transform: translateY(0) scale(1); }
-        
         .hint-icon {
             color: #00ff00; font-size: 26px; font-weight: 900;
             text-shadow: 1px 1px 0px #004400, -1px -1px 0px #004400, 1px -1px 0px #004400, -1px 1px 0px #004400, 2px 2px 2px rgba(0,0,0,0.8);
             line-height: 1; margin-top: -2px;
         }
 
+        /* --- Q-MENU (SPAWN MENU) --- */
+        #spawn-menu {
+            position: fixed; top: 10%; left: 10%; width: 80%; height: 80%;
+            background: rgba(180, 180, 180, 0.95); border: 2px solid #555;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.5); z-index: 900; display: none;
+            flex-direction: column; padding: 20px; box-sizing: border-box;
+        }
+        .spawn-header { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 20px; border-bottom: 2px solid #999; padding-bottom: 5px; }
+        .spawn-category { font-size: 18px; font-weight: bold; color: #555; margin-top: 15px; margin-bottom: 10px; }
+        .spawn-grid { display: flex; flex-wrap: wrap; gap: 15px; }
+        .spawn-btn {
+            width: 100px; height: 100px; background: #e0e0e0; border: 1px solid #aaa;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            font-weight: bold; color: #333; font-size: 14px; text-shadow: 1px 1px 0px white;
+            transition: background 0.1s; border-radius: 4px;
+        }
+        .spawn-btn:hover { background: #fff; border-color: #00aaff; box-shadow: 0px 0px 5px rgba(0, 170, 255, 0.5); }
+        .spawn-btn.npc { background: #ffcccc; border-color: #ff0000; }
+        .spawn-btn.npc:hover { background: #ffaaaa; }
+
         /* --- PAUSE MENU --- */
         #pause-menu {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 1000; display: none;
-            background: rgba(0,0,0,0.2);
-            backdrop-filter: blur(2px);
+            z-index: 1000; display: none; background: rgba(0,0,0,0.2); backdrop-filter: blur(2px);
         }
-
         .sidebar {
             position: absolute; top: 0; left: 0; width: 350px; height: 100%;
             background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
-            padding: 50px; box-sizing: border-box;
-            display: flex; flex-direction: column;
+            padding: 50px; box-sizing: border-box; display: flex; flex-direction: column;
         }
-
         .menu-logo { max-width: 200px; margin-bottom: 50px; }
         .menu-items { display: flex; flex-direction: column; gap: 6px; }
         .menu-btn {
             background: none; border: none; color: white;
             font-family: Tahoma, Arial, sans-serif; font-size: 18px; font-weight: bold;
             text-align: left; cursor: pointer; padding: 4px 8px; width: fit-content;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-            transition: background 0.1s, color 0.1s;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8); transition: background 0.1s, color 0.1s;
         }
         .menu-btn:hover { background: rgba(255,255,255,0.1); border-radius: 2px; }
         .menu-spacer { height: 15px; }
-
-        #sub-menu-overlay {
-            position: absolute; top: 100px; left: 400px; right: 100px; bottom: 100px;
-            background: white; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .sub-menu-text { font-size: 24px; color: #777; font-weight: bold; }
-        .sub-menu-back {
-            position: absolute; bottom: 30px; right: 40px;
-            background: none; border: none; font-size: 20px; font-weight: bold; color: #333;
-            cursor: pointer; font-family: Tahoma, Arial, sans-serif;
-        }
-        .sub-menu-back:hover { text-decoration: underline; }
-
-        #disconnect-flash {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; z-index: 99999; display: none;
-        }
+        #disconnect-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 99999; display: none; }
     </style>
 </head>
 <body>
@@ -174,34 +172,38 @@
         </div>
     </div>
 
+    <div id="spawn-menu">
+        <div class="spawn-header">Spawnlists</div>
+        
+        <div class="spawn-category">Basic Props</div>
+        <div class="spawn-grid">
+            <button class="spawn-btn" onclick="spawnEntity('Square')">Square</button>
+            <button class="spawn-btn" onclick="spawnEntity('Ball')">Ball</button>
+            <button class="spawn-btn" onclick="spawnEntity('Triangle')">Triangle</button>
+        </div>
+
+        <div class="spawn-category">Entities / NPCs</div>
+        <div class="spawn-grid">
+            <button class="spawn-btn npc" onclick="spawnEntity('Nextbot')">Nextbot</button>
+        </div>
+    </div>
+
     <div id="pause-menu">
         <div class="sidebar">
             <img src="GmodLOGO.png" class="menu-logo" alt="Gmod Menu Logo">
             <div class="menu-items">
                 <button class="menu-btn" id="btn-resume">Resume Game</button>
                 <div class="menu-spacer"></div>
-                <button class="menu-btn">Start New Game</button>
-                <button class="menu-btn">Find Multiplayer Game</button>
-                <div class="menu-spacer"></div>
-                <button class="menu-btn sub-trigger" data-type="addons">Addons</button>
-                <button class="menu-btn sub-trigger" data-type="demos">Demos</button>
-                <button class="menu-btn sub-trigger" data-type="saves">Saves</button>
-                <div class="menu-spacer"></div>
-                <button class="menu-btn">Options</button>
-                <div class="menu-spacer"></div>
                 <button class="menu-btn" id="btn-disconnect">Disconnect</button>
                 <button class="menu-btn" id="btn-quit">Quit</button>
             </div>
-        </div>
-        <div id="sub-menu-overlay">
-            <div class="sub-menu-text" id="sub-menu-message">No addons found!</div>
-            <button class="sub-menu-back" id="btn-back">Back</button>
         </div>
     </div>
 
     <div id="disconnect-flash"></div>
     <div id="damage-flash"></div>
     <div id="death-overlay"></div>
+    <div id="notification-container"></div>
 
     <img src="Newtonvm.webp" id="viewmodel" alt="Weapon Viewmodel">
 
@@ -211,8 +213,8 @@
     </div>
 
     <div id="hint-container">
-        <div class="gmod-hint" id="hint-1"><span class="hint-icon">?</span><span>Hold 'q' to open the SPAWN MENU</span></div>
-        <div class="gmod-hint" id="hint-2"><span class="hint-icon">?</span><span>You can turn off hints in the CONTEXT MENU</span></div>
+        <div class="gmod-hint" id="hint-1"><span class="hint-icon">?</span><span>Hold 'Q' to open the SPAWN MENU</span></div>
+        <div class="gmod-hint" id="hint-2"><span class="hint-icon">?</span><span>Press 'Z' to Undo / Remove Objects</span></div>
     </div>
 
     <div id="game-canvas"></div>
@@ -221,9 +223,10 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 
     <script>
-        const hintSound = new Audio('balloon_pop_cute.wav');
+        const hintSound = new Audio('balloon_pop_cute.wav'); // Replace if needed
         let engineFrozen = false; 
         let isPaused = false;
+        let isSpawnMenuOpen = false;
 
         // --- HEALTH & DEATH SYSTEM ---
         let playerHealth = 100;
@@ -235,19 +238,14 @@
 
         function applyDamage(amount) {
             if (isNoclipping || isDead) return; 
-            
             playerHealth -= Math.floor(amount);
             if (playerHealth < 0) playerHealth = 0;
             
-            // Damage Flash
             damageFlash.style.opacity = '1';
             setTimeout(() => { damageFlash.style.opacity = '0'; }, 150);
-            
             healthDisplay.innerText = playerHealth;
 
-            if (playerHealth <= 0) {
-                triggerDeath();
-            }
+            if (playerHealth <= 0) triggerDeath();
         }
 
         function triggerDeath() {
@@ -255,39 +253,19 @@
             viewmodelImg.style.display = 'none';
             deathOverlay.style.display = 'block';
 
-            // Auto Respawn after 3.5 seconds
             setTimeout(() => {
-                isDead = false;
-                playerHealth = 100;
-                healthDisplay.innerText = playerHealth;
-                deathOverlay.style.display = 'none';
-                viewmodelImg.style.display = 'block';
-                
-                // Reset Position & Camera Tilt
-                controls.getObject().position.set(0, 10, 0); 
-                velocity.set(0,0,0);
-                camera.rotation.z = 0;
-                cameraOffset = 10;
+                isDead = false; playerHealth = 100; healthDisplay.innerText = playerHealth;
+                deathOverlay.style.display = 'none'; viewmodelImg.style.display = 'block';
+                controls.getObject().position.set(0, 10, 0); velocity.set(0,0,0);
+                camera.rotation.z = 0; cameraOffset = 10;
             }, 3500);
         }
 
-        // --- UI & PAUSE MENU LOGIC ---
+        // --- UI & MENUS ---
         const pauseMenu = document.getElementById('pause-menu');
-        const subMenuOverlay = document.getElementById('sub-menu-overlay');
-        const subMenuMessage = document.getElementById('sub-menu-message');
+        const spawnMenu = document.getElementById('spawn-menu');
 
         document.getElementById('btn-resume').addEventListener('click', () => controls.lock());
-
-        document.querySelectorAll('.sub-trigger').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const type = e.target.getAttribute('data-type');
-                subMenuMessage.innerText = `No ${type} found!`;
-                subMenuOverlay.style.display = 'flex';
-            });
-        });
-
-        document.getElementById('btn-back').addEventListener('click', () => subMenuOverlay.style.display = 'none');
-
         document.getElementById('btn-disconnect').addEventListener('click', () => {
             document.getElementById('disconnect-flash').style.display = 'block';
             setTimeout(() => window.location.href = 'index.html', 800);
@@ -302,15 +280,13 @@
             block.className = 'bar-block';
             progressBar.appendChild(block);
         }
-
         const blocks = document.querySelectorAll('.bar-block');
         const statusText = document.getElementById('status-text');
         let currentBlock = 0;
 
         const loadingInterval = setInterval(() => {
             if (currentBlock < totalBlocks) {
-                blocks[currentBlock].classList.add('filled');
-                currentBlock++;
+                blocks[currentBlock].classList.add('filled'); currentBlock++;
                 const progress = currentBlock / totalBlocks;
                 if (progress > 0.3 && progress < 0.8) statusText.innerText = "Loading Lua...";
                 else if (progress >= 0.8) statusText.innerText = "Lua started...";
@@ -320,29 +296,24 @@
                 engineFrozen = true; 
                 
                 setTimeout(() => {
-                    engineFrozen = false;
-                    viewmodelImg.style.display = 'block';
+                    engineFrozen = false; viewmodelImg.style.display = 'block';
                     document.getElementById('health-hud').style.display = 'flex'; 
 
                     setTimeout(() => {
-                        const hint1 = document.getElementById('hint-1');
-                        hint1.classList.add('show');
-                        hintSound.play().catch(e => {});
-                        setTimeout(() => hint1.classList.remove('show'), 10000); 
+                        const hint1 = document.getElementById('hint-1'); hint1.classList.add('show');
+                        hintSound.play().catch(e => {}); setTimeout(() => hint1.classList.remove('show'), 8000); 
                         
                         setTimeout(() => {
-                            const hint2 = document.getElementById('hint-2');
-                            hint2.classList.add('show');
-                            hintSound.currentTime = 0; 
-                            hintSound.play().catch(e => {});
-                            setTimeout(() => hint2.classList.remove('show'), 10000); 
+                            const hint2 = document.getElementById('hint-2'); hint2.classList.add('show');
+                            hintSound.currentTime = 0; hintSound.play().catch(e => {});
+                            setTimeout(() => hint2.classList.remove('show'), 8000); 
                         }, 2000); 
                     }, 5000); 
                 }, 1000); 
             }
         }, 10000 / totalBlocks);
 
-        // --- 3D ENGINE & MOVEMENT LOGIC ---
+        // --- 3D ENGINE, MOVEMENT, & SPAWNING ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let isSprinting = false, isCrouching = false, canJump = false, jumpPressed = false;
@@ -352,16 +323,15 @@
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
 
-        let playerBaseY = 0; 
-        let cameraOffset = 10; 
-        const gravity = 40.0;
-        const jumpForce = 20.0;
+        let playerBaseY = 0; let cameraOffset = 10; 
+        const gravity = 40.0; const jumpForce = 20.0;
 
-        let bobTime = 0;
-        let currentBobX = 0, currentBobY = 0;
-        let targetSwayX = 0, targetSwayY = 0;
-        let currentSwayX = 0, currentSwayY = 0;
-        let landDip = 0; 
+        let bobTime = 0; let currentBobX = 0, currentBobY = 0;
+        let targetSwayX = 0, targetSwayY = 0; let currentSwayX = 0, currentSwayY = 0; let landDip = 0; 
+
+        // Spawning System Variables
+        const spawnedObjects = [];
+        const notiContainer = document.getElementById('notification-container');
 
         init();
         animate();
@@ -370,25 +340,16 @@
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
 
-            const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-            light.position.set(0, 200, 0);
-            scene.add(light);
-
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(0, 200, 100);
-            scene.add(dirLight);
+            const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1); light.position.set(0, 200, 0); scene.add(light);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(0, 200, 100); scene.add(dirLight);
 
             const textureLoader = new THREE.TextureLoader();
             const grassTexture = textureLoader.load('grass01.jpg');
-            grassTexture.wrapS = THREE.RepeatWrapping;
-            grassTexture.wrapT = THREE.RepeatWrapping;
-            grassTexture.repeat.set(100, 100); 
+            grassTexture.wrapS = THREE.RepeatWrapping; grassTexture.wrapT = THREE.RepeatWrapping; grassTexture.repeat.set(100, 100); 
 
-            const floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
-            floorGeometry.rotateX(-Math.PI / 2);
+            const floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100); floorGeometry.rotateX(-Math.PI / 2);
             const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, roughness: 0.8 });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            scene.add(floor);
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial); scene.add(floor);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -399,51 +360,66 @@
             
             controls.addEventListener('unlock', function () {
                 if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
-                    pauseMenu.style.display = 'block';
-                    isPaused = true;
+                    if (isSpawnMenuOpen) {
+                        spawnMenu.style.display = 'flex';
+                    } else {
+                        pauseMenu.style.display = 'block';
+                        isPaused = true;
+                    }
                 }
             });
 
             controls.addEventListener('lock', function () {
                 pauseMenu.style.display = 'none';
-                subMenuOverlay.style.display = 'none'; 
+                spawnMenu.style.display = 'none';
                 isPaused = false;
+                isSpawnMenuOpen = false;
             });
 
             document.addEventListener('click', function (e) {
-                if (!isPaused && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none' && !isDead) {
+                // If they click on the canvas and menus are hidden, lock pointer
+                if (!isPaused && !isSpawnMenuOpen && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none' && !isDead) {
                     controls.lock();
                 }
             });
 
             document.addEventListener('mousemove', function(event) {
                 if (controls.isLocked && !isDead) {
-                    targetSwayX -= event.movementX * 0.15; 
-                    targetSwayY += event.movementY * 0.15; 
-                    targetSwayX = Math.max(-25, Math.min(25, targetSwayX));
-                    targetSwayY = Math.max(-20, Math.min(30, targetSwayY));
+                    targetSwayX -= event.movementX * 0.15; targetSwayY += event.movementY * 0.15; 
+                    targetSwayX = Math.max(-25, Math.min(25, targetSwayX)); targetSwayY = Math.max(-20, Math.min(30, targetSwayY));
                 }
             });
 
             scene.add(controls.getObject());
 
             const onKeyDown = function (event) {
-                if (isPaused || isDead) return;
+                if (isDead) return;
+
+                // Toggle Spawn Menu
+                if (event.code === 'KeyQ' && !isPaused) {
+                    if (isSpawnMenuOpen) {
+                        controls.lock(); // Re-lock screen, closes menu automatically via event
+                    } else if (controls.isLocked) {
+                        isSpawnMenuOpen = true;
+                        controls.unlock(); // Unlocks screen, opens menu automatically via event
+                    }
+                }
+
+                // Undo Object
+                if (event.code === 'KeyZ' && controls.isLocked) {
+                    undoLastSpawn();
+                }
+
+                if (isPaused || isSpawnMenuOpen) return;
                 switch (event.code) {
                     case 'ArrowUp': case 'KeyW': moveForward = true; break;
                     case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
                     case 'ArrowDown': case 'KeyS': moveBackward = true; break;
                     case 'ArrowRight': case 'KeyD': moveRight = true; break;
-                    case 'Space': 
-                        jumpPressed = true;
-                        if (canJump && !isNoclipping) { velocity.y += jumpForce; canJump = false; } 
-                        break;
+                    case 'Space': jumpPressed = true; if (canJump && !isNoclipping) { velocity.y += jumpForce; canJump = false; } break;
                     case 'ShiftLeft': isSprinting = true; break;
                     case 'ControlLeft': case 'KeyC': isCrouching = true; break;
-                    case 'KeyV': 
-                        isNoclipping = !isNoclipping; 
-                        if(isNoclipping) velocity.set(0,0,0); 
-                        break;
+                    case 'KeyV': isNoclipping = !isNoclipping; if(isNoclipping) velocity.set(0,0,0); break;
                 }
             };
             const onKeyUp = function (event) {
@@ -463,10 +439,64 @@
             window.addEventListener('resize', onWindowResize);
         }
 
+        // --- SPAWNING LOGIC ---
+        window.spawnEntity = function(type) {
+            let geometry, material, mesh;
+
+            switch(type) {
+                case 'Square':
+                    geometry = new THREE.BoxGeometry(5, 5, 5);
+                    material = new THREE.MeshStandardMaterial({ color: 0x4287f5 });
+                    break;
+                case 'Ball':
+                    geometry = new THREE.SphereGeometry(3, 32, 32);
+                    material = new THREE.MeshStandardMaterial({ color: 0xf54242 });
+                    break;
+                case 'Triangle':
+                    geometry = new THREE.ConeGeometry(3, 6, 4);
+                    material = new THREE.MeshStandardMaterial({ color: 0x42f563 });
+                    break;
+                case 'Nextbot':
+                    geometry = new THREE.PlaneGeometry(12, 12);
+                    material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+                    break;
+            }
+
+            mesh = new THREE.Mesh(geometry, material);
+            mesh.name = type;
+            if (type === 'Nextbot') mesh.isNextbot = true;
+
+            // Spawn directly in front of camera
+            const spawnDist = 20;
+            const camDir = new THREE.Vector3();
+            camera.getWorldDirection(camDir);
+            mesh.position.copy(controls.getObject().position).add(camDir.multiplyScalar(spawnDist));
+            
+            // Adjust height so it doesn't clip into floor
+            if (mesh.position.y < 3) mesh.position.y = 3;
+
+            scene.add(mesh);
+            spawnedObjects.push(mesh);
+        };
+
+        window.undoLastSpawn = function() {
+            if (spawnedObjects.length > 0) {
+                const obj = spawnedObjects.pop();
+                scene.remove(obj);
+                
+                // Show UI Notification
+                const noti = document.createElement('div');
+                noti.className = 'noti-box';
+                noti.innerHTML = `<span class="noti-arrow">↩</span> Deleted ${obj.name}.`;
+                notiContainer.appendChild(noti);
+                
+                setTimeout(() => { noti.style.opacity = '0'; setTimeout(() => noti.remove(), 500); }, 3000);
+            }
+        };
+
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         function animate() {
@@ -476,121 +506,83 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            if (controls.isLocked === true && !isPaused) {
-                
-                if (isDead) {
-                    // --- DEATH PHYSICS (RAGDOLL CAMERA) ---
-                    cameraOffset += (2 - cameraOffset) * 5 * delta; // Drop head to floor
-                    camera.rotation.z += (Math.PI / 2.2 - camera.rotation.z) * 4 * delta; // Tilt 90 degrees
-                    controls.getObject().position.y = playerBaseY + cameraOffset;
+            // --- NEXTBOT AI LOGIC ---
+            const playerPos = controls.getObject().position;
+            spawnedObjects.forEach(obj => {
+                if (obj.isNextbot) {
+                    // Billboard effect (always face player camera)
+                    obj.quaternion.copy(camera.quaternion);
                     
-                    // Stop sliding friction
-                    velocity.x -= velocity.x * 5.0 * delta;
-                    velocity.z -= velocity.z * 5.0 * delta;
-                    controls.moveRight(-velocity.x * delta);
-                    controls.moveForward(-velocity.z * delta);
+                    // Chase logic (700 speed = roughly sprint speed)
+                    if (!isDead) {
+                        const botSpeed = 700 * delta;
+                        const direction = new THREE.Vector3().subVectors(playerPos, obj.position);
+                        direction.y = 0; // Keep it sliding along the ground
+                        direction.normalize();
+                        obj.position.addScaledVector(direction, botSpeed);
+                    }
+                }
+            });
 
+            if (controls.isLocked === true && !isPaused && !isSpawnMenuOpen) {
+                if (isDead) {
+                    cameraOffset += (2 - cameraOffset) * 5 * delta; 
+                    camera.rotation.z += (Math.PI / 2.2 - camera.rotation.z) * 4 * delta; 
+                    controls.getObject().position.y = playerBaseY + cameraOffset;
+                    velocity.x -= velocity.x * 5.0 * delta; velocity.z -= velocity.z * 5.0 * delta;
+                    controls.moveRight(-velocity.x * delta); controls.moveForward(-velocity.z * delta);
                 } else if (isNoclipping) {
-                    // --- NOCLIP (FLY MODE) PHYSICS ---
                     const noclipSpeed = isSprinting ? 500 : 200;
-                    const camDir = new THREE.Vector3();
-                    camera.getWorldDirection(camDir);
-                    
+                    const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
                     if (moveForward) controls.getObject().position.addScaledVector(camDir, noclipSpeed * delta);
                     if (moveBackward) controls.getObject().position.addScaledVector(camDir, -noclipSpeed * delta);
                     if (moveLeft) controls.moveRight(-noclipSpeed * delta);
                     if (moveRight) controls.moveRight(noclipSpeed * delta);
                     if (jumpPressed) controls.getObject().position.y += noclipSpeed * delta;
                     if (isCrouching) controls.getObject().position.y -= noclipSpeed * delta;
-
-                    playerBaseY = controls.getObject().position.y - cameraOffset;
-                    velocity.set(0, 0, 0); 
-                    
+                    playerBaseY = controls.getObject().position.y - cameraOffset; velocity.set(0, 0, 0); 
                 } else {
-                    // --- STANDARD WALKING PHYSICS ---
                     const friction = canJump ? 10.0 : 1.5; 
-                    velocity.x -= velocity.x * friction * delta;
-                    velocity.z -= velocity.z * friction * delta;
-                    velocity.y -= gravity * delta;
-
-                    direction.z = Number(moveForward) - Number(moveBackward);
-                    direction.x = Number(moveRight) - Number(moveLeft);
-                    direction.normalize(); 
-
-                    let speed = 400.0; 
-                    if (isCrouching) speed = 150.0;
-                    else if (isSprinting) speed = 750.0;
-
+                    velocity.x -= velocity.x * friction * delta; velocity.z -= velocity.z * friction * delta; velocity.y -= gravity * delta;
+                    direction.z = Number(moveForward) - Number(moveBackward); direction.x = Number(moveRight) - Number(moveLeft); direction.normalize(); 
+                    let speed = 400.0; if (isCrouching) speed = 150.0; else if (isSprinting) speed = 750.0;
                     const controlMult = canJump ? 1.0 : 0.2; 
-                    
                     if (moveForward || moveBackward) velocity.z -= direction.z * speed * controlMult * delta;
                     if (moveLeft || moveRight) velocity.x -= direction.x * speed * controlMult * delta;
-
-                    controls.moveRight(-velocity.x * delta);
-                    controls.moveForward(-velocity.z * delta);
+                    controls.moveRight(-velocity.x * delta); controls.moveForward(-velocity.z * delta);
                     
-                    const wasInAir = !canJump;
-                    playerBaseY += velocity.y * delta;
-                    
+                    const wasInAir = !canJump; playerBaseY += velocity.y * delta;
                     if (playerBaseY < 0) { 
                         playerBaseY = 0;
                         if (wasInAir) {
-                            // FALL DAMAGE CALCULATION
-                            if (velocity.y < -45) {
-                                const damageAmount = (Math.abs(velocity.y) - 45) * 1.8;
-                                applyDamage(damageAmount);
-                            }
+                            if (velocity.y < -45) applyDamage((Math.abs(velocity.y) - 45) * 1.8);
                             landDip = Math.min(80, Math.abs(velocity.y) * 1.5); 
                         }
-                        velocity.y = 0;
-                        canJump = true;
+                        velocity.y = 0; canJump = true;
                     }
-
                     const targetOffset = isCrouching ? 5 : 10;
-                    cameraOffset += (targetOffset - cameraOffset) * 12 * delta;
-                    controls.getObject().position.y = playerBaseY + cameraOffset;
+                    cameraOffset += (targetOffset - cameraOffset) * 12 * delta; controls.getObject().position.y = playerBaseY + cameraOffset;
                 }
 
-                // --- VIEWMODEL PHYSICS ---
                 if (!isDead) {
                     const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
                     let targetBobX = 0, targetBobY = 0;
-
                     if (movementSpeed > 10 && canJump && !isNoclipping) {
-                        const bobSpeed = isSprinting ? 14 : 9;
-                        bobTime += delta * bobSpeed; 
-                        targetBobX = Math.sin(bobTime) * (isSprinting ? 15 : 10);
-                        targetBobY = Math.abs(Math.cos(bobTime)) * (isSprinting ? 12 : 8);
+                        const bobSpeed = isSprinting ? 14 : 9; bobTime += delta * bobSpeed; 
+                        targetBobX = Math.sin(bobTime) * (isSprinting ? 15 : 10); targetBobY = Math.abs(Math.cos(bobTime)) * (isSprinting ? 12 : 8);
                     } else {
-                        bobTime += delta * 2; 
-                        targetBobX = Math.sin(bobTime) * 2;
-                        targetBobY = Math.sin(bobTime * 2) * 2;
+                        bobTime += delta * 2; targetBobX = Math.sin(bobTime) * 2; targetBobY = Math.sin(bobTime * 2) * 2;
                     }
-
-                    currentBobX += (targetBobX - currentBobX) * 8 * delta;
-                    currentBobY += (targetBobY - currentBobY) * 8 * delta;
-
-                    targetSwayX += (0 - targetSwayX) * 8 * delta;
-                    targetSwayY += (0 - targetSwayY) * 8 * delta;
-                    
-                    currentSwayX += (targetSwayX - currentSwayX) * 15 * delta;
-                    currentSwayY += (targetSwayY - currentSwayY) * 15 * delta;
-
-                    const moveDragZ = (velocity.z * 0.05); 
-                    const moveDragX = (velocity.x * 0.05);
-
-                    landDip += (0 - landDip) * 10 * delta; 
-
-                    const finalX = currentBobX + currentSwayX + moveDragX;
-                    const finalY = currentBobY + currentSwayY + landDip;
+                    currentBobX += (targetBobX - currentBobX) * 8 * delta; currentBobY += (targetBobY - currentBobY) * 8 * delta;
+                    targetSwayX += (0 - targetSwayX) * 8 * delta; targetSwayY += (0 - targetSwayY) * 8 * delta;
+                    currentSwayX += (targetSwayX - currentSwayX) * 15 * delta; currentSwayY += (targetSwayY - currentSwayY) * 15 * delta;
+                    const moveDragZ = (velocity.z * 0.05); const moveDragX = (velocity.x * 0.05); landDip += (0 - landDip) * 10 * delta; 
+                    const finalX = currentBobX + currentSwayX + moveDragX; const finalY = currentBobY + currentSwayY + landDip;
                     const finalRotation = currentSwayX * 0.03; 
-
                     viewmodelImg.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
                 }
             }
-
-            prevTime = time;
-            renderer.render(scene, camera);
+            prevTime = time; renderer.render(scene, camera);
         }
     </script>
 </body>
