@@ -149,6 +149,10 @@
                     <div style="margin-bottom:10px;">Max Players: <select><option>Single Player</option><option>2 Players</option></select></div>
                     <div style="margin-bottom:10px;">Server Name: <input type="text" value="Gmod Server" style="width:100px;"></div>
                     <div><label><input type="checkbox" checked> Peer to Peer</label></div>
+                    
+                    <button onclick="loadMapFile()" style="margin-top: 25px; width: 100%; padding: 10px; background: #3498db; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                        Start Game
+                    </button>
                 </div>
             </div>
             <div class="back-btn" onclick="closeWindow()">Back</div>
@@ -247,6 +251,23 @@
             document.querySelectorAll('.map-item').forEach(m => m.classList.remove('selected'));
             el.classList.add('selected');
             clickSnd.play();
+        }
+
+        // --- LOAD MAP FILE LOGIC ---
+        function loadMapFile() {
+            // Find the element with the map name inside the currently selected map item
+            const selectedMapElement = document.querySelector('.map-item.selected .map-name');
+            
+            if (selectedMapElement) {
+                // Get the text (e.g., "gm_construct" or "gm_flatgrass")
+                const mapName = selectedMapElement.innerText.trim();
+                
+                // Play the click sound
+                clickSnd.play();
+                
+                // Redirect the browser to the corresponding HTML file
+                window.location.href = mapName + '.html';
+            }
         }
 
         // --- SERVER BROWSER ---
