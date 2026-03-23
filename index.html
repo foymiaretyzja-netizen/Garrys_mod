@@ -35,43 +35,42 @@
         .menu-item:hover { color: #FFFF00; }
         .group-space { margin-top: 20px; }
 
-        /* --- SAVES UI (THE WHITE OVERLAY) --- */
-        #saves-overlay {
+        /* --- VERSION LABEL --- */
+        .version-label {
+            position: fixed; bottom: 15px; right: 20px;
+            color: rgba(255, 255, 255, 0.6); font-size: 14px;
+            font-weight: 700; text-shadow: 1px 1px 0px black; z-index: 10;
+        }
+
+        /* --- UNIVERSAL POPUP UI --- */
+        #universal-overlay {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; z-index: 200;
             background: rgba(0, 0, 0, 0.7);
         }
-
-        .saves-window {
+        .window-frame {
             position: absolute; top: 5%; left: 5%; right: 5%; bottom: 5%;
             display: flex; flex-direction: column;
         }
-
-        /* Top Title */
-        .saves-title {
+        .window-title {
             color: white; font-size: 24px; font-weight: 700;
             text-shadow: 2px 2px 0px black; margin-bottom: 10px;
         }
-
-        .saves-body { display: flex; flex: 1; gap: 10px; }
-
-        /* Left Sidebar */
-        .saves-sidebar { width: 200px; display: flex; flex-direction: column; gap: 5px; }
+        .window-body { display: flex; flex: 1; gap: 10px; }
+        
+        .sidebar { width: 200px; display: flex; flex-direction: column; gap: 5px; }
         .side-item {
             color: white; font-size: 14px; font-weight: 700;
             cursor: pointer; text-shadow: 1px 1px 0px black;
         }
-        .side-item:hover { color: #FFFF00; }
-        .side-item.active { color: #FFFF00; }
+        .side-item:hover, .side-item.active { color: #FFFF00; }
 
-        /* Main White Content Area */
-        .saves-content {
+        .content-area {
             flex: 1; background: white; border: 1px solid #ccc;
             display: flex; justify-content: center; align-items: center;
             color: #666; font-size: 24px; font-weight: 700;
         }
 
-        /* Back Button Bottom Right */
         .back-btn {
             position: absolute; bottom: 20px; right: 20px;
             color: white; font-size: 24px; font-weight: 700;
@@ -79,7 +78,6 @@
         }
         .back-btn:hover { color: #FFFF00; }
 
-        /* Hide Options logic from previous step */
         #options-overlay {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5);
@@ -91,31 +89,23 @@
 
     <div id="bg-1" class="bg-layer active"></div>
     <div id="bg-2" class="bg-layer"></div>
+    <div class="version-label">v2026.03.22</div>
 
     <div id="options-overlay" onclick="closeOptions()">
         <img src="options.png" style="max-width:90%;" onclick="event.stopPropagation()">
     </div>
 
-    <div id="saves-overlay">
-        <div class="saves-window">
-            <div class="saves-title">Saves</div>
-            <div class="saves-body">
-                <div class="saves-sidebar">
-                    <div class="side-item active">My Saves</div>
-                    <div class="side-item">Subscribed</div>
-                    <div class="group-space"></div>
-                    <div class="side-item">Currently Popular</div>
-                    <div class="side-item">Top Rated</div>
-                    <div class="side-item">Latest Uploads</div>
-                    <div class="group-space"></div>
-                    <div class="side-item">Friends Uploads</div>
-                    <div class="side-item">My Uploads</div>
-                </div>
-                <div class="saves-content" id="saves-main-text">
-                    No saves found!
+    <div id="universal-overlay">
+        <div class="window-frame">
+            <div class="window-title" id="win-title">Title</div>
+            <div class="window-body">
+                <div class="sidebar" id="win-sidebar">
+                    </div>
+                <div class="content-area" id="win-content">
+                    Loading...
                 </div>
             </div>
-            <div class="back-btn" onclick="closeSaves()">Back</div>
+            <div class="back-btn" onclick="closeWindow()">Back</div>
         </div>
     </div>
 
@@ -125,10 +115,10 @@
             <a class="menu-item">Start New Game</a>
             <a class="menu-item">Find Multiplayer Game</a>
             <div class="group-space"></div>
-            <a class="menu-item">Addons</a>
-            <a class="menu-item">Dupes</a>
-            <a class="menu-item" onclick="openSaves()">Saves</a>
-            <a class="menu-item">Demos</a>
+            <a class="menu-item" onclick="openWindow('Addons')">Addons</a>
+            <a class="menu-item" onclick="openWindow('Dupes')">Dupes</a>
+            <a class="menu-item" onclick="openWindow('Saves')">Saves</a>
+            <a class="menu-item" onclick="openWindow('Demos')">Demos</a>
             <div class="group-space"></div>
             <a class="menu-item" onclick="openOptions()">Options</a>
             <div class="group-space"></div>
@@ -141,23 +131,45 @@
         const hoverSnd = new Audio('ui_hover.wav');
         const clickSnd = new Audio('ui_click.wav');
 
+        // Sidebar content for each category
+        const menuData = {
+            'Addons': ['Subscribed', 'Trending', 'Top Rated', 'Latest'],
+            'Dupes': ['My Dupes', 'Subscribed', 'Trending', 'Friends'],
+            'Saves': ['My Saves', 'Subscribed', 'Popular', 'Friends'],
+            'Demos': ['My Demos', 'Trending', 'Top Rated']
+        };
+
         function openOptions() { document.getElementById('options-overlay').style.display = 'flex'; }
         function closeOptions() { document.getElementById('options-overlay').style.display = 'none'; }
 
-        function openSaves() {
-            const overlay = document.getElementById('saves-overlay');
-            const content = document.getElementById('saves-main-text');
-            overlay.style.display = 'block';
-            content.innerText = "Loading..."; // Fake loading state
+        function openWindow(type) {
+            const overlay = document.getElementById('universal-overlay');
+            const title = document.getElementById('win-title');
+            const sidebar = document.getElementById('win-sidebar');
+            const content = document.getElementById('win-content');
+
+            title.innerText = type;
+            content.innerText = "Loading...";
             
-            setTimeout(() => {
-                content.innerText = "No saves found!";
-            }, 800);
+            // Build Sidebar
+            sidebar.innerHTML = '';
+            menuData[type].forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'side-item' + (index === 0 ? ' active' : '');
+                div.innerText = item;
+                // Add sounds to new items
+                div.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play(); };
+                div.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play(); };
+                sidebar.appendChild(div);
+            });
+
+            overlay.style.display = 'block';
+            setTimeout(() => { content.innerText = `No ${type.toLowerCase()} found!`; }, 800);
         }
 
-        function closeSaves() { document.getElementById('saves-overlay').style.display = 'none'; }
+        function closeWindow() { document.getElementById('universal-overlay').style.display = 'none'; }
 
-        // Background Cycle Logic
+        // Background Logic
         let currentIdx = 1;
         function getImgPath() {
             const num = Math.floor(Math.random() * 52) + 1;
@@ -174,8 +186,8 @@
             currentIdx = nextIdx;
         }
 
-        // Apply sounds to everything clickable
-        document.querySelectorAll('.menu-item, .side-item, .back-btn').forEach(item => {
+        // Apply sounds
+        document.querySelectorAll('.menu-item, .back-btn').forEach(item => {
             item.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play().catch(()=>{}); };
             item.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play().catch(()=>{}); };
         });
