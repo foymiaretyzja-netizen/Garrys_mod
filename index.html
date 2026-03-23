@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garry's Mod Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- FONT & RESET --- */
+        /* --- GLOBAL RESET & TYPOGRAPHY --- */
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
             overflow: hidden; background-color: #000;
@@ -13,7 +14,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* --- BACKGROUND LAYERS --- */
+        /* --- BACKGROUND KEN BURNS ENGINE --- */
         .bg-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
@@ -22,7 +23,7 @@
         .bg-layer.active { opacity: 1; animation: gmodZoom 10s linear forwards; }
         @keyframes gmodZoom { from { transform: scale(1); } to { transform: scale(1.08); } }
 
-        /* --- MAIN UI --- */
+        /* --- MAIN MENU UI --- */
         #ui-wrapper { position: relative; z-index: 10; padding: 60px 70px; }
         .logo { width: 240px; margin-bottom: 25px; display: block; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)); }
         .menu-container { display: flex; flex-direction: column; gap: 2px; }
@@ -40,7 +41,7 @@
             font-weight: 700; text-shadow: 1px 1px 0px black; z-index: 10;
         }
 
-        /* --- UNIVERSAL POPUP UI --- */
+        /* --- UNIVERSAL OVERLAY SYSTEM --- */
         #universal-overlay {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; z-index: 200;
@@ -55,6 +56,8 @@
             text-shadow: 2px 2px 0px black; margin-bottom: 10px;
         }
         .window-body { display: flex; flex: 1; gap: 10px; overflow: hidden; }
+        
+        /* Left Sidebar */
         .sidebar { width: 200px; display: flex; flex-direction: column; gap: 5px; }
         .side-item {
             color: white; font-size: 14px; font-weight: 700;
@@ -62,23 +65,50 @@
         }
         .side-item:hover, .side-item.active { color: #FFFF00; }
 
+        /* Content Canvas */
         .content-area {
             flex: 1; background: white; border: 1px solid #ccc;
-            overflow-y: auto; display: block; padding: 0;
+            overflow-y: auto; display: block;
         }
 
-        /* --- SERVER ROW --- */
+        /* --- MAP SELECTION (START NEW GAME) --- */
+        .map-grid { display: flex; gap: 20px; padding: 20px; flex-wrap: wrap; }
+        .map-item { width: 150px; cursor: pointer; text-align: center; }
+        .map-thumb { 
+            width: 100%; height: 85px; background: #333; 
+            border: 2px solid transparent; transition: border 0.1s;
+        }
+        .map-item.selected .map-thumb { border-color: #3498db; }
+        .map-name { font-size: 12px; font-weight: 700; color: #333; margin-top: 5px; }
+        .map-item.selected .map-name { text-decoration: underline; color: #3498db; }
+
+        /* Right Settings Sidebar */
+        .right-sidebar { 
+            width: 260px; background: #f4f4f4; border-left: 1px solid #ccc; 
+            padding: 15px; font-size: 13px; color: #333; overflow-y: auto;
+        }
+        .setting-group { margin-bottom: 18px; }
+        .setting-label { font-weight: 700; margin-bottom: 6px; display: block; }
+        .clickable-input { width: 90%; padding: 5px; border: 1px solid #bbb; cursor: pointer; }
+
+        /* --- SERVER LIST ROWS --- */
         .server-row {
-            display: flex; align-items: center; padding: 8px 15px;
+            display: flex; align-items: center; padding: 10px 15px;
             border-bottom: 1px solid #eee; cursor: pointer;
         }
         .server-row:hover { background: #f0f8ff; }
-        .server-info { flex: 1; }
-        .server-name { font-weight: 700; font-size: 14px; color: #333; }
-        .server-meta { font-size: 11px; color: #777; margin-top: 2px; }
-        .gm-badge { background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin-right: 5px; }
-        .player-count { font-weight: 700; color: #555; font-size: 13px; width: 60px; text-align: right; }
-        .join-btn { color: #3498db; margin-left: 15px; font-size: 18px; }
+
+        /* --- TERMINAL ERROR --- */
+        #terminal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            z-index: 500; justify-content: center; align-items: center;
+        }
+        .terminal-box {
+            background: #222; border: 1px solid #444; width: 480px; padding: 25px;
+            color: #bbb; font-family: 'Roboto Mono', monospace; font-size: 14px;
+            box-shadow: 0 0 40px rgba(0,0,0,1);
+        }
 
         .back-btn {
             position: absolute; bottom: 20px; right: 20px;
@@ -86,27 +116,6 @@
             text-shadow: 2px 2px 0px black; cursor: pointer; z-index: 10;
         }
         .back-btn:hover { color: #FFFF00; }
-
-        /* --- CONNECTION TERMINAL POPUP --- */
-        #terminal-overlay {
-            display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
-            z-index: 500; justify-content: center; align-items: center;
-        }
-        .terminal-box {
-            background: #2a2a2a; border: 2px solid #444; width: 450px; padding: 20px;
-            color: #ccc; font-family: 'Courier New', Courier, monospace; font-size: 14px;
-            box-shadow: 0 0 30px rgba(0,0,0,1);
-        }
-        .terminal-header { color: white; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .terminal-close { float: right; cursor: pointer; color: #888; }
-        .terminal-close:hover { color: white; }
-
-        #options-overlay {
-            display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5);
-            z-index: 300; justify-content: center; align-items: center;
-        }
     </style>
 </head>
 <body>
@@ -117,24 +126,14 @@
 
     <div id="terminal-overlay" onclick="closeTerminal()">
         <div class="terminal-box" onclick="event.stopPropagation()">
-            <div class="terminal-header">
-                Connection Error
-                <span class="terminal-close" onclick="closeTerminal()">[X]</span>
-            </div>
+            <div style="color:white; font-weight:bold; margin-bottom:15px;">CONNECTION ERROR</div>
             <div>Connecting to 192.168.100.42:27015...</div>
             <div style="margin-top:10px;">Retrying connection to server (1)...</div>
             <div>Retrying connection to server (2)...</div>
             <div>Retrying connection to server (3)...</div>
             <div>Retrying connection to server (4)...</div>
-            <div style="color:#ff5555; margin-top:15px; font-weight:bold;">
-                Failed to connect after 4 retries.
-            </div>
-            <div style="margin-top:10px; color:#888;">Unable to connect to server.</div>
+            <div style="color:#ff4444; margin-top:20px; font-weight:bold;">FAILED TO CONNECT AFTER 4 RETRIES.</div>
         </div>
-    </div>
-
-    <div id="options-overlay" onclick="closeOptions()">
-        <img src="options.png" style="max-width:90%;" onclick="event.stopPropagation()">
     </div>
 
     <div id="universal-overlay">
@@ -143,6 +142,7 @@
             <div class="window-body">
                 <div class="sidebar" id="win-sidebar"></div>
                 <div class="content-area" id="win-content"></div>
+                <div class="right-sidebar" id="win-right-sidebar" style="display:none;"></div>
             </div>
             <div class="back-btn" onclick="closeWindow()">Back</div>
         </div>
@@ -151,7 +151,7 @@
     <div id="ui-wrapper">
         <img src="GmodLOGO.png" alt="" class="logo">
         <div class="menu-container">
-            <a class="menu-item">Start New Game</a>
+            <a class="menu-item" onclick="openStartGame()">Start New Game</a>
             <a class="menu-item" onclick="openServerBrowser()">Find Multiplayer Game</a>
             <div class="group-space"></div>
             <a class="menu-item" onclick="openWindow('Addons')">Addons</a>
@@ -159,7 +159,7 @@
             <a class="menu-item" onclick="openWindow('Saves')">Saves</a>
             <a class="menu-item" onclick="openWindow('Demos')">Demos</a>
             <div class="group-space"></div>
-            <a class="menu-item" onclick="openOptions()">Options</a>
+            <a class="menu-item">Options</a>
             <div class="group-space"></div>
             <a class="menu-item" onclick="window.close()">Quit</a>
         </div>
@@ -170,91 +170,82 @@
         const hoverSnd = new Audio('ui_hover.wav');
         const clickSnd = new Audio('ui_click.wav');
 
-        const menuData = {
-            'Addons': ['Subscribed', 'Trending', 'Top Rated'],
-            'Dupes': ['My Dupes', 'Subscribed', 'Trending'],
-            'Saves': ['My Saves', 'Subscribed', 'Popular'],
-            'Demos': ['My Demos', 'Trending']
-        };
-
-        let servers = [
-            { name: "ICE - CWRP | Phase II", map: "rp_venator", gm: "CWRP", players: 84, max: 100 },
-            { name: "Zombie Survival | US West", map: "zs_office", gm: "Zombie Survival", players: 32, max: 64 },
-            { name: "TTT - Fun & Fast", map: "ttt_67th_way", gm: "TTT", players: 12, max: 24 },
-            { name: "DarkRP - Custom Jobs", map: "rp_downtown", gm: "DarkRP", players: 110, max: 128 },
-            { name: "Prop Hunt | Classic", map: "ph_house", gm: "Prop Hunt", players: 0, max: 32 },
-            { name: "Sandbox - Build", map: "gm_construct", gm: "Sandbox", players: 5, max: 16 }
-        ];
-
-        function openOptions() { document.getElementById('options-overlay').style.display = 'flex'; }
-        function closeOptions() { document.getElementById('options-overlay').style.display = 'none'; }
-        
-        function openTerminal() { document.getElementById('terminal-overlay').style.display = 'flex'; }
-        function closeTerminal() { document.getElementById('terminal-overlay').style.display = 'none'; }
-
-        function openWindow(type) {
+        // --- START NEW GAME ---
+        function openStartGame() {
             const overlay = document.getElementById('universal-overlay');
-            const title = document.getElementById('win-title');
-            const sidebar = document.getElementById('win-sidebar');
-            const content = document.getElementById('win-content');
-
-            title.innerText = type;
-            sidebar.innerHTML = '';
-            menuData[type].forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'side-item' + (index === 0 ? ' active' : '');
-                div.innerText = item;
-                div.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play(); };
-                sidebar.appendChild(div);
-            });
+            const rightBar = document.getElementById('win-right-sidebar');
+            document.getElementById('win-title').innerText = "Start New Game";
+            document.getElementById('win-sidebar').innerHTML = '<div class="side-item active">Sandbox</div>';
             
-            // REMOVED FADE/LOADING DELAY - Appears instantly
-            content.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#666; font-size:24px; font-weight:700;">No ${type.toLowerCase()} found!</div>`;
+            rightBar.style.display = 'block';
+            rightBar.innerHTML = `
+                <div class="setting-group"><span class="setting-label">Max Players</span><select class="clickable-input"><option>Single Player</option><option>2 Players</option><option>8 Players</option></select></div>
+                <div class="setting-group"><span class="setting-label">Server Name</span><input type="text" class="clickable-input" value="Garry's Mod Server"></div>
+                <div class="setting-group"><label style="cursor:pointer"><input type="checkbox" checked> Peer to Peer</label></div>
+            `;
+
+            document.getElementById('win-content').innerHTML = `
+                <div class="map-grid">
+                    <div class="map-item selected" onclick="selectMap(this)">
+                        <img src="map1.png" class="map-thumb">
+                        <div class="map-name">gm_construct</div>
+                    </div>
+                    <div class="map-item" onclick="selectMap(this)">
+                        <img src="map2.png" class="map-thumb">
+                        <div class="map-name">gm_flatgrass</div>
+                    </div>
+                </div>`;
             overlay.style.display = 'block';
         }
 
+        function selectMap(el) {
+            document.querySelectorAll('.map-item').forEach(m => m.classList.remove('selected'));
+            el.classList.add('selected');
+            clickSnd.play();
+        }
+
+        // --- SERVER BROWSER ---
         function openServerBrowser() {
             const overlay = document.getElementById('universal-overlay');
-            const title = document.getElementById('win-title');
-            const sidebar = document.getElementById('win-sidebar');
             const content = document.getElementById('win-content');
-
-            title.innerText = "Server List";
-            sidebar.innerHTML = `<div class="side-item active">Internet</div><div class="side-item">Favorites</div><div class="side-item">History</div>`;
+            document.getElementById('win-right-sidebar').style.display = 'none';
+            document.getElementById('win-title').innerText = "Server List";
+            document.getElementById('win-sidebar').innerHTML = '<div class="side-item active">Internet</div>';
             content.innerHTML = '';
             overlay.style.display = 'block';
 
-            servers.sort((a, b) => b.players - a.players);
+            const servers = [
+                { name: "ICE - CWRP | Phase II", players: "84 / 100" },
+                { name: "Zombie Survival | US West", players: "32 / 64" },
+                { name: "DarkRP - Custom Jobs", players: "110 / 128" }
+            ];
+
             servers.forEach((s, i) => {
-                setTimeout(() => { renderServerRow(s); }, i * 100);
+                setTimeout(() => {
+                    const row = document.createElement('div');
+                    row.className = 'server-row';
+                    row.innerHTML = `<div style="flex:1; font-weight:700;">${s.name}</div><div style="color:#666;">${s.players}</div>`;
+                    row.onmouseenter = () => hoverSnd.play();
+                    row.onmousedown = openTerminal;
+                    content.appendChild(row);
+                }, i * 150);
             });
         }
 
-        function renderServerRow(s) {
-            const content = document.getElementById('win-content');
-            const row = document.createElement('div');
-            row.className = 'server-row';
-            row.innerHTML = `<div class="server-info"><div class="server-name">${s.name}</div><div class="server-meta"><span class="gm-badge">${s.gm}</span> ${s.map}</div></div><div class="player-count">${s.players} / ${s.max}</div><div class="join-btn">▶</div>`;
-            row.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play(); };
-            row.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play(); openTerminal(); };
-            content.appendChild(row);
-        }
-
-        function refreshServerList() {
-            servers.forEach(s => {
-                const change = Math.floor(Math.random() * 3) - 1;
-                s.players = Math.max(0, Math.min(s.max, s.players + change));
-            });
-            servers.sort((a, b) => b.players - a.players);
+        function openWindow(type) {
             const overlay = document.getElementById('universal-overlay');
-            if (overlay.style.display === 'block' && document.getElementById('win-title').innerText === "Server List") {
-                document.getElementById('win-content').innerHTML = '';
-                servers.forEach(s => renderServerRow(s));
-            }
+            document.getElementById('win-right-sidebar').style.display = 'none';
+            document.getElementById('win-title').innerText = type;
+            document.getElementById('win-sidebar').innerHTML = `<div class="side-item active">Subscribed</div>`;
+            document.getElementById('win-content').innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#666; font-size:24px; font-weight:700;">No ${type.toLowerCase()} found!</div>`;
+            overlay.style.display = 'block';
         }
 
+        function openTerminal() { document.getElementById('terminal-overlay').style.display = 'flex'; clickSnd.play(); }
+        function closeTerminal() { document.getElementById('terminal-overlay').style.display = 'none'; }
         function closeWindow() { document.getElementById('universal-overlay').style.display = 'none'; }
 
+        // --- BACKGROUND LOGIC ---
         let currentIdx = 1;
         function getImgPath() {
             const num = Math.floor(Math.random() * 52) + 1;
@@ -271,15 +262,11 @@
             currentIdx = nextIdx;
         }
 
-        document.querySelectorAll('.menu-item, .back-btn').forEach(item => {
-            item.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play().catch(()=>{}); };
-            item.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play().catch(()=>{}); };
-        });
-
         window.onload = () => {
             document.getElementById('bg-1').style.backgroundImage = `url('${getImgPath()}')`;
             setInterval(swapBackground, 10000);
-            setInterval(refreshServerList, 60000); // REFRESH EVERY 1 MINUTE
+            // Minute Refresh
+            setInterval(() => { if(document.getElementById('win-title').innerText === "Server List") openServerBrowser(); }, 60000);
         };
     </script>
 </body>
