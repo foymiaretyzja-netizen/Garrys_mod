@@ -24,7 +24,7 @@
         }
 
         .center-stage { display: flex; flex-direction: column; align-items: center; transform: translateY(-20px); }
-        .gmod-logo { max-width: 250px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
+        .gmod-logo-load { max-width: 250px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
 
         .notepad-spinner {
             width: 32px; height: 32px; background-color: #ffda47;
@@ -58,7 +58,6 @@
             transform-origin: bottom right;
             display: none; 
             animation: pulseGlow 4s infinite ease-in-out;
-            /* Will be transformed dynamically by JS */
         }
 
         /* --- GMOD HINTS SYSTEM --- */
@@ -81,13 +80,62 @@
             text-shadow: 1px 1px 0px #004400, -1px -1px 0px #004400, 1px -1px 0px #004400, -1px 1px 0px #004400, 2px 2px 2px rgba(0,0,0,0.8);
             line-height: 1; margin-top: -2px;
         }
+
+        /* --- PAUSE MENU --- */
+        #pause-menu {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1000; display: none;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(2px);
+        }
+
+        .sidebar {
+            position: absolute; top: 0; left: 0; width: 350px; height: 100%;
+            background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%);
+            padding: 50px; box-sizing: border-box;
+            display: flex; flex-direction: column;
+        }
+
+        .menu-logo { max-width: 200px; margin-bottom: 50px; }
+
+        .menu-items { display: flex; flex-direction: column; gap: 6px; }
+        
+        .menu-btn {
+            background: none; border: none; color: white;
+            font-family: Tahoma, Arial, sans-serif; font-size: 18px; font-weight: bold;
+            text-align: left; cursor: pointer; padding: 4px 8px; width: fit-content;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            transition: background 0.1s, color 0.1s;
+        }
+        .menu-btn:hover { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .menu-spacer { height: 15px; } /* Creates the gaps between categories */
+
+        /* --- SUB-MENU (WHITE BOX) --- */
+        #sub-menu-overlay {
+            position: absolute; top: 100px; left: 400px; right: 100px; bottom: 100px;
+            background: white; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .sub-menu-text { font-size: 24px; color: #777; font-weight: bold; }
+        .sub-menu-back {
+            position: absolute; bottom: 30px; right: 40px;
+            background: none; border: none; font-size: 20px; font-weight: bold; color: #333;
+            cursor: pointer; font-family: Tahoma, Arial, sans-serif;
+        }
+        .sub-menu-back:hover { text-decoration: underline; }
+
+        /* Flash bang effect for disconnect */
+        #disconnect-flash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 99999; display: none;
+        }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay">
         <div class="center-stage">
-            <img src="Garry's_Mod_logo.svg.png" class="gmod-logo">
+            <img src="GmodLOGO.png" class="gmod-logo-load" alt="Gmod Logo">
             <div class="notepad-spinner">
                 <div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>
             </div>
@@ -97,6 +145,34 @@
             <div class="bar-container" id="progress-bar"></div>
         </div>
     </div>
+
+    <div id="pause-menu">
+        <div class="sidebar">
+            <img src="GmodLOGO.png" class="menu-logo" alt="Gmod Logo">
+            <div class="menu-items">
+                <button class="menu-btn" id="btn-resume">Resume Game</button>
+                <div class="menu-spacer"></div>
+                <button class="menu-btn">Start New Game</button>
+                <button class="menu-btn">Find Multiplayer Game</button>
+                <div class="menu-spacer"></div>
+                <button class="menu-btn sub-trigger" data-type="addons">Addons</button>
+                <button class="menu-btn sub-trigger" data-type="demos">Demos</button>
+                <button class="menu-btn sub-trigger" data-type="saves">Saves</button>
+                <div class="menu-spacer"></div>
+                <button class="menu-btn">Options</button>
+                <div class="menu-spacer"></div>
+                <button class="menu-btn" id="btn-disconnect">Disconnect</button>
+                <button class="menu-btn" id="btn-quit">Quit</button>
+            </div>
+        </div>
+
+        <div id="sub-menu-overlay">
+            <div class="sub-menu-text" id="sub-menu-message">No addons found!</div>
+            <button class="sub-menu-back" id="btn-back">Back</button>
+        </div>
+    </div>
+
+    <div id="disconnect-flash"></div>
 
     <img src="Newtonvm.webp" id="viewmodel" alt="Weapon Viewmodel">
 
@@ -113,6 +189,42 @@
     <script>
         const hintSound = new Audio('balloon_pop_cute.wav');
         let engineFrozen = false; 
+        let isPaused = false;
+
+        // --- UI & PAUSE MENU LOGIC ---
+        const pauseMenu = document.getElementById('pause-menu');
+        const subMenuOverlay = document.getElementById('sub-menu-overlay');
+        const subMenuMessage = document.getElementById('sub-menu-message');
+
+        document.getElementById('btn-resume').addEventListener('click', () => {
+            controls.lock(); // This will automatically hide the menu via the 'lock' event
+        });
+
+        document.querySelectorAll('.sub-trigger').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const type = e.target.getAttribute('data-type');
+                subMenuMessage.innerText = `No ${type} found!`;
+                subMenuOverlay.style.display = 'flex';
+            });
+        });
+
+        document.getElementById('btn-back').addEventListener('click', () => {
+            subMenuOverlay.style.display = 'none';
+        });
+
+        document.getElementById('btn-disconnect').addEventListener('click', () => {
+            document.getElementById('disconnect-flash').style.display = 'block';
+            // Fake source engine lag during disconnect
+            setTimeout(() => {
+                // In a real app this would redirect to main menu
+                window.location.reload(); 
+            }, 800);
+        });
+
+        document.getElementById('btn-quit').addEventListener('click', () => {
+            window.close(); // Only works if tab was opened by a script, but standard practice
+        });
+
 
         // --- LOADING LOGIC ---
         const totalBlocks = 20;
@@ -162,7 +274,7 @@
             }
         }, 10000 / totalBlocks);
 
-        // --- 3D ENGINE & ADVANCED MOVEMENT LOGIC ---
+        // --- 3D ENGINE & MOVEMENT LOGIC ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let isSprinting = false, isCrouching = false, canJump = false;
@@ -171,21 +283,18 @@
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
 
-        // Physics variables
         let playerBaseY = 0; 
         let cameraOffset = 10; 
         const gravity = 40.0;
         const jumpForce = 20.0;
 
-        // Viewmodel Physics Variables
         const viewmodel = document.getElementById('viewmodel');
         let bobTime = 0;
         let currentBobX = 0, currentBobY = 0;
         
-        // Sway & Drag variables
         let targetSwayX = 0, targetSwayY = 0;
         let currentSwayX = 0, currentSwayY = 0;
-        let landDip = 0; // The downward drop when landing
+        let landDip = 0; 
 
         init();
         animate();
@@ -221,28 +330,42 @@
 
             controls = new THREE.PointerLockControls(camera, document.body);
             
-            document.addEventListener('click', function () {
+            // Pointer Lock Event Listeners for Pause Menu
+            controls.addEventListener('unlock', function () {
                 if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
+                    pauseMenu.style.display = 'block';
+                    isPaused = true;
+                }
+            });
+
+            controls.addEventListener('lock', function () {
+                pauseMenu.style.display = 'none';
+                subMenuOverlay.style.display = 'none'; // reset submenu
+                isPaused = false;
+            });
+
+            document.addEventListener('click', function (e) {
+                // Only lock if we aren't clicking inside the pause menu
+                if (!isPaused && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
                     controls.lock();
                 }
             });
 
-            // TRACK MOUSE MOVEMENT FOR WEAPON SWAY
             document.addEventListener('mousemove', function(event) {
                 if (controls.isLocked) {
-                    // Accumulate raw mouse movement into the target sway
-                    targetSwayX -= event.movementX * 0.4; // Reverse X so gun drags behind
-                    targetSwayY += event.movementY * 0.4; 
+                    // UPDATED: Less aggressive translation, bounds tightened
+                    targetSwayX -= event.movementX * 0.15; 
+                    targetSwayY += event.movementY * 0.15; 
                     
-                    // Clamp it so it doesn't fly off screen
-                    targetSwayX = Math.max(-60, Math.min(60, targetSwayX));
-                    targetSwayY = Math.max(-40, Math.min(60, targetSwayY));
+                    targetSwayX = Math.max(-25, Math.min(25, targetSwayX));
+                    targetSwayY = Math.max(-20, Math.min(30, targetSwayY));
                 }
             });
 
             scene.add(controls.getObject());
 
             const onKeyDown = function (event) {
+                if (isPaused) return;
                 switch (event.code) {
                     case 'ArrowUp': case 'KeyW': moveForward = true; break;
                     case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
@@ -284,7 +407,7 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            if (controls.isLocked === true) {
+            if (controls.isLocked === true && !isPaused) {
                 const friction = canJump ? 10.0 : 1.5; 
                 velocity.x -= velocity.x * friction * delta;
                 velocity.z -= velocity.z * friction * delta;
@@ -307,18 +430,14 @@
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
                 
-                // --- JUMP LANDING PHYSICS ---
                 const wasInAir = !canJump;
                 playerBaseY += velocity.y * delta;
                 
                 if (playerBaseY < 0) { 
                     playerBaseY = 0;
-                    
-                    // If we were falling fast, trigger a landing dip on the gun
                     if (wasInAir && velocity.y < -15) {
-                        landDip = Math.min(80, Math.abs(velocity.y) * 1.5); // Gun drops down
+                        landDip = Math.min(80, Math.abs(velocity.y) * 1.5); 
                     }
-                    
                     velocity.y = 0;
                     canJump = true;
                 }
@@ -327,9 +446,7 @@
                 cameraOffset += (targetOffset - cameraOffset) * 12 * delta;
                 controls.getObject().position.y = playerBaseY + cameraOffset;
 
-                // --- VIEWMODEL PHYSICS MASTER LOOP ---
-                
-                // 1. Base Bobbing (Faster if sprinting)
+                // --- VIEWMODEL PHYSICS ---
                 const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
                 let targetBobX = 0, targetBobY = 0;
 
@@ -347,26 +464,22 @@
                 currentBobX += (targetBobX - currentBobX) * 8 * delta;
                 currentBobY += (targetBobY - currentBobY) * 8 * delta;
 
-                // 2. Mouse Sway (Drags behind cursor)
-                // Decay the target sway back to center (0,0) like a spring
                 targetSwayX += (0 - targetSwayX) * 8 * delta;
                 targetSwayY += (0 - targetSwayY) * 8 * delta;
                 
-                // Interpolate the actual sway smoothly towards the target
                 currentSwayX += (targetSwayX - currentSwayX) * 15 * delta;
                 currentSwayY += (targetSwayY - currentSwayY) * 15 * delta;
 
-                // 3. Movement Drag (Pushes gun based on WASD velocity)
                 const moveDragZ = (velocity.z * 0.05); 
                 const moveDragX = (velocity.x * 0.05);
 
-                // 4. Landing Dip (Spring back to 0)
                 landDip += (0 - landDip) * 10 * delta; 
 
-                // --- COMPILE ALL FORCES ---
                 const finalX = currentBobX + currentSwayX + moveDragX;
                 const finalY = currentBobY + currentSwayY + landDip;
-                const finalRotation = currentSwayX * 0.15; // Subtle tilt when turning
+                
+                // UPDATED: Significantly reduced rotation to keep the gun locked-in
+                const finalRotation = currentSwayX * 0.03; 
 
                 viewmodel.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
             }
