@@ -60,6 +60,38 @@
             animation: pulseGlow 4s infinite ease-in-out;
         }
 
+        /* --- HEALTH HUD & DAMAGE OVERLAYS --- */
+        #health-hud {
+            position: absolute;
+            bottom: 35px;
+            left: 35px;
+            background: rgba(0, 0, 0, 0.65);
+            padding: 8px 18px;
+            border-radius: 4px;
+            display: none; 
+            align-items: baseline;
+            gap: 12px;
+            color: #ffcc00; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            z-index: 50;
+            pointer-events: none;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+        }
+        .health-label { font-size: 14px; font-weight: bold; }
+        .health-value { font-size: 42px; font-weight: bold; line-height: 1; }
+
+        #damage-flash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 0, 0, 0.4); z-index: 800;
+            pointer-events: none; opacity: 0; transition: opacity 0.1s ease-out;
+        }
+
+        #death-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(150, 0, 0, 0.45); z-index: 800;
+            pointer-events: none; display: none;
+        }
+
         /* --- GMOD HINTS SYSTEM --- */
         #hint-container {
             position: absolute; right: 20px; bottom: 30%; 
@@ -97,9 +129,7 @@
         }
 
         .menu-logo { max-width: 200px; margin-bottom: 50px; }
-
         .menu-items { display: flex; flex-direction: column; gap: 6px; }
-        
         .menu-btn {
             background: none; border: none; color: white;
             font-family: Tahoma, Arial, sans-serif; font-size: 18px; font-weight: bold;
@@ -110,7 +140,6 @@
         .menu-btn:hover { background: rgba(255,255,255,0.1); border-radius: 2px; }
         .menu-spacer { height: 15px; }
 
-        /* --- SUB-MENU (WHITE BOX) --- */
         #sub-menu-overlay {
             position: absolute; top: 100px; left: 400px; right: 100px; bottom: 100px;
             background: white; box-shadow: 0px 5px 15px rgba(0,0,0,0.5);
@@ -164,7 +193,6 @@
                 <button class="menu-btn" id="btn-quit">Quit</button>
             </div>
         </div>
-
         <div id="sub-menu-overlay">
             <div class="sub-menu-text" id="sub-menu-message">No addons found!</div>
             <button class="sub-menu-back" id="btn-back">Back</button>
@@ -172,8 +200,15 @@
     </div>
 
     <div id="disconnect-flash"></div>
+    <div id="damage-flash"></div>
+    <div id="death-overlay"></div>
 
     <img src="Newtonvm.webp" id="viewmodel" alt="Weapon Viewmodel">
+
+    <div id="health-hud">
+        <span class="health-label">HEALTH</span>
+        <span class="health-value" id="health-display">100</span>
+    </div>
 
     <div id="hint-container">
         <div class="gmod-hint" id="hint-1"><span class="hint-icon">?</span><span>Hold 'q' to open the SPAWN MENU</span></div>
@@ -190,14 +225,58 @@
         let engineFrozen = false; 
         let isPaused = false;
 
+        // --- HEALTH & DEATH SYSTEM ---
+        let playerHealth = 100;
+        let isDead = false;
+        const healthDisplay = document.getElementById('health-display');
+        const damageFlash = document.getElementById('damage-flash');
+        const deathOverlay = document.getElementById('death-overlay');
+        const viewmodelImg = document.getElementById('viewmodel');
+
+        function applyDamage(amount) {
+            if (isNoclipping || isDead) return; 
+            
+            playerHealth -= Math.floor(amount);
+            if (playerHealth < 0) playerHealth = 0;
+            
+            // Damage Flash
+            damageFlash.style.opacity = '1';
+            setTimeout(() => { damageFlash.style.opacity = '0'; }, 150);
+            
+            healthDisplay.innerText = playerHealth;
+
+            if (playerHealth <= 0) {
+                triggerDeath();
+            }
+        }
+
+        function triggerDeath() {
+            isDead = true;
+            viewmodelImg.style.display = 'none';
+            deathOverlay.style.display = 'block';
+
+            // Auto Respawn after 3.5 seconds
+            setTimeout(() => {
+                isDead = false;
+                playerHealth = 100;
+                healthDisplay.innerText = playerHealth;
+                deathOverlay.style.display = 'none';
+                viewmodelImg.style.display = 'block';
+                
+                // Reset Position & Camera Tilt
+                controls.getObject().position.set(0, 10, 0); 
+                velocity.set(0,0,0);
+                camera.rotation.z = 0;
+                cameraOffset = 10;
+            }, 3500);
+        }
+
         // --- UI & PAUSE MENU LOGIC ---
         const pauseMenu = document.getElementById('pause-menu');
         const subMenuOverlay = document.getElementById('sub-menu-overlay');
         const subMenuMessage = document.getElementById('sub-menu-message');
 
-        document.getElementById('btn-resume').addEventListener('click', () => {
-            controls.lock(); 
-        });
+        document.getElementById('btn-resume').addEventListener('click', () => controls.lock());
 
         document.querySelectorAll('.sub-trigger').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -207,20 +286,13 @@
             });
         });
 
-        document.getElementById('btn-back').addEventListener('click', () => {
-            subMenuOverlay.style.display = 'none';
-        });
+        document.getElementById('btn-back').addEventListener('click', () => subMenuOverlay.style.display = 'none');
 
         document.getElementById('btn-disconnect').addEventListener('click', () => {
             document.getElementById('disconnect-flash').style.display = 'block';
-            setTimeout(() => {
-                window.location.href = 'index.html'; 
-            }, 800);
+            setTimeout(() => window.location.href = 'index.html', 800);
         });
-
-        document.getElementById('btn-quit').addEventListener('click', () => {
-            window.close(); 
-        });
+        document.getElementById('btn-quit').addEventListener('click', () => window.close());
 
         // --- LOADING LOGIC ---
         const totalBlocks = 20;
@@ -245,12 +317,12 @@
             } else {
                 clearInterval(loadingInterval);
                 document.getElementById('loading-overlay').style.display = 'none';
-                
                 engineFrozen = true; 
                 
                 setTimeout(() => {
                     engineFrozen = false;
-                    document.getElementById('viewmodel').style.display = 'block';
+                    viewmodelImg.style.display = 'block';
+                    document.getElementById('health-hud').style.display = 'flex'; 
 
                     setTimeout(() => {
                         const hint1 = document.getElementById('hint-1');
@@ -274,7 +346,7 @@
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let isSprinting = false, isCrouching = false, canJump = false, jumpPressed = false;
-        let isNoclipping = false; // The new Fly Mode flag
+        let isNoclipping = false; 
         
         let prevTime = performance.now();
         const velocity = new THREE.Vector3();
@@ -285,10 +357,8 @@
         const gravity = 40.0;
         const jumpForce = 20.0;
 
-        const viewmodel = document.getElementById('viewmodel');
         let bobTime = 0;
         let currentBobX = 0, currentBobY = 0;
-        
         let targetSwayX = 0, targetSwayY = 0;
         let currentSwayX = 0, currentSwayY = 0;
         let landDip = 0; 
@@ -308,7 +378,6 @@
             dirLight.position.set(0, 200, 100);
             scene.add(dirLight);
 
-            // Create flat grass terrain
             const textureLoader = new THREE.TextureLoader();
             const grassTexture = textureLoader.load('grass01.jpg');
             grassTexture.wrapS = THREE.RepeatWrapping;
@@ -320,8 +389,6 @@
             const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, roughness: 0.8 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             scene.add(floor);
-
-            // Removed GridHelper entirely for realism
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -344,16 +411,15 @@
             });
 
             document.addEventListener('click', function (e) {
-                if (!isPaused && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
+                if (!isPaused && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none' && !isDead) {
                     controls.lock();
                 }
             });
 
             document.addEventListener('mousemove', function(event) {
-                if (controls.isLocked) {
+                if (controls.isLocked && !isDead) {
                     targetSwayX -= event.movementX * 0.15; 
                     targetSwayY += event.movementY * 0.15; 
-                    
                     targetSwayX = Math.max(-25, Math.min(25, targetSwayX));
                     targetSwayY = Math.max(-20, Math.min(30, targetSwayY));
                 }
@@ -362,7 +428,7 @@
             scene.add(controls.getObject());
 
             const onKeyDown = function (event) {
-                if (isPaused) return;
+                if (isPaused || isDead) return;
                 switch (event.code) {
                     case 'ArrowUp': case 'KeyW': moveForward = true; break;
                     case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
@@ -376,7 +442,7 @@
                     case 'ControlLeft': case 'KeyC': isCrouching = true; break;
                     case 'KeyV': 
                         isNoclipping = !isNoclipping; 
-                        if(isNoclipping) velocity.set(0,0,0); // Kill standard momentum instantly
+                        if(isNoclipping) velocity.set(0,0,0); 
                         break;
                 }
             };
@@ -412,26 +478,31 @@
 
             if (controls.isLocked === true && !isPaused) {
                 
-                if (isNoclipping) {
+                if (isDead) {
+                    // --- DEATH PHYSICS (RAGDOLL CAMERA) ---
+                    cameraOffset += (2 - cameraOffset) * 5 * delta; // Drop head to floor
+                    camera.rotation.z += (Math.PI / 2.2 - camera.rotation.z) * 4 * delta; // Tilt 90 degrees
+                    controls.getObject().position.y = playerBaseY + cameraOffset;
+                    
+                    // Stop sliding friction
+                    velocity.x -= velocity.x * 5.0 * delta;
+                    velocity.z -= velocity.z * 5.0 * delta;
+                    controls.moveRight(-velocity.x * delta);
+                    controls.moveForward(-velocity.z * delta);
+
+                } else if (isNoclipping) {
                     // --- NOCLIP (FLY MODE) PHYSICS ---
                     const noclipSpeed = isSprinting ? 500 : 200;
-                    
-                    // Fly where the camera points
                     const camDir = new THREE.Vector3();
                     camera.getWorldDirection(camDir);
                     
                     if (moveForward) controls.getObject().position.addScaledVector(camDir, noclipSpeed * delta);
                     if (moveBackward) controls.getObject().position.addScaledVector(camDir, -noclipSpeed * delta);
-                    
-                    // Left and right
                     if (moveLeft) controls.moveRight(-noclipSpeed * delta);
                     if (moveRight) controls.moveRight(noclipSpeed * delta);
-                    
-                    // Straight Up / Down
                     if (jumpPressed) controls.getObject().position.y += noclipSpeed * delta;
                     if (isCrouching) controls.getObject().position.y -= noclipSpeed * delta;
 
-                    // Sync the internal ground tracker so we don't snap when we turn noclip off
                     playerBaseY = controls.getObject().position.y - cameraOffset;
                     velocity.set(0, 0, 0); 
                     
@@ -440,7 +511,6 @@
                     const friction = canJump ? 10.0 : 1.5; 
                     velocity.x -= velocity.x * friction * delta;
                     velocity.z -= velocity.z * friction * delta;
-                    
                     velocity.y -= gravity * delta;
 
                     direction.z = Number(moveForward) - Number(moveBackward);
@@ -464,7 +534,12 @@
                     
                     if (playerBaseY < 0) { 
                         playerBaseY = 0;
-                        if (wasInAir && velocity.y < -15) {
+                        if (wasInAir) {
+                            // FALL DAMAGE CALCULATION
+                            if (velocity.y < -45) {
+                                const damageAmount = (Math.abs(velocity.y) - 45) * 1.8;
+                                applyDamage(damageAmount);
+                            }
                             landDip = Math.min(80, Math.abs(velocity.y) * 1.5); 
                         }
                         velocity.y = 0;
@@ -477,40 +552,41 @@
                 }
 
                 // --- VIEWMODEL PHYSICS ---
-                const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-                let targetBobX = 0, targetBobY = 0;
+                if (!isDead) {
+                    const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+                    let targetBobX = 0, targetBobY = 0;
 
-                // Viewmodel stops bobbing if noclipping (because movementSpeed is 0)
-                if (movementSpeed > 10 && canJump && !isNoclipping) {
-                    const bobSpeed = isSprinting ? 14 : 9;
-                    bobTime += delta * bobSpeed; 
-                    targetBobX = Math.sin(bobTime) * (isSprinting ? 15 : 10);
-                    targetBobY = Math.abs(Math.cos(bobTime)) * (isSprinting ? 12 : 8);
-                } else {
-                    bobTime += delta * 2; 
-                    targetBobX = Math.sin(bobTime) * 2;
-                    targetBobY = Math.sin(bobTime * 2) * 2;
+                    if (movementSpeed > 10 && canJump && !isNoclipping) {
+                        const bobSpeed = isSprinting ? 14 : 9;
+                        bobTime += delta * bobSpeed; 
+                        targetBobX = Math.sin(bobTime) * (isSprinting ? 15 : 10);
+                        targetBobY = Math.abs(Math.cos(bobTime)) * (isSprinting ? 12 : 8);
+                    } else {
+                        bobTime += delta * 2; 
+                        targetBobX = Math.sin(bobTime) * 2;
+                        targetBobY = Math.sin(bobTime * 2) * 2;
+                    }
+
+                    currentBobX += (targetBobX - currentBobX) * 8 * delta;
+                    currentBobY += (targetBobY - currentBobY) * 8 * delta;
+
+                    targetSwayX += (0 - targetSwayX) * 8 * delta;
+                    targetSwayY += (0 - targetSwayY) * 8 * delta;
+                    
+                    currentSwayX += (targetSwayX - currentSwayX) * 15 * delta;
+                    currentSwayY += (targetSwayY - currentSwayY) * 15 * delta;
+
+                    const moveDragZ = (velocity.z * 0.05); 
+                    const moveDragX = (velocity.x * 0.05);
+
+                    landDip += (0 - landDip) * 10 * delta; 
+
+                    const finalX = currentBobX + currentSwayX + moveDragX;
+                    const finalY = currentBobY + currentSwayY + landDip;
+                    const finalRotation = currentSwayX * 0.03; 
+
+                    viewmodelImg.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
                 }
-
-                currentBobX += (targetBobX - currentBobX) * 8 * delta;
-                currentBobY += (targetBobY - currentBobY) * 8 * delta;
-
-                targetSwayX += (0 - targetSwayX) * 8 * delta;
-                targetSwayY += (0 - targetSwayY) * 8 * delta;
-                
-                currentSwayX += (targetSwayX - currentSwayX) * 15 * delta;
-                currentSwayY += (targetSwayY - currentSwayY) * 15 * delta;
-
-                const moveDragZ = (velocity.z * 0.05); 
-                const moveDragX = (velocity.x * 0.05);
-
-                landDip += (0 - landDip) * 10 * delta; 
-
-                const finalX = currentBobX + currentSwayX + moveDragX;
-                const finalY = currentBobY + currentSwayY + landDip;
-                const finalRotation = currentSwayX * 0.03; 
-
-                viewmodel.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
             }
 
             prevTime = time;
