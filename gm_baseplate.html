@@ -13,19 +13,7 @@
             user-select: none;
         }
 
-        #game-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
-
-        /* --- CLICK TO PLAY OVERLAY --- */
-        #blocker {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); display: none; 
-            flex-direction: column; justify-content: center; align-items: center;
-            color: white; z-index: 10;
-        }
-        #instructions {
-            font-size: 24px; font-weight: bold; text-align: center; cursor: pointer;
-            text-shadow: 2px 2px 0px #000;
-        }
+        #game-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; cursor: crosshair; }
 
         /* --- LOADING SCREEN OVERLAY --- */
         #loading-overlay {
@@ -33,7 +21,6 @@
             background: radial-gradient(circle at center, #dce4eb 0%, #a4b2c1 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 9999; 
-            /* Removed the transition so it snaps off instantly */
         }
 
         .center-stage { display: flex; flex-direction: column; align-items: center; transform: translateY(-20px); }
@@ -56,23 +43,38 @@
         .bar-block { flex: 1; background-color: transparent; }
         .bar-block.filled { background-color: #f2f2f2; }
 
+        /* --- 2D VIEWMODEL --- */
+        #viewmodel {
+            position: absolute; 
+            bottom: -50px; /* Sunk slightly outside the canvas to hide edges during bobbing */
+            right: -50px; 
+            width: 45%; max-width: 600px; 
+            z-index: 5; 
+            pointer-events: none; /* Prevents the image from blocking mouse clicks */
+            transform-origin: bottom right;
+            display: none; /* Hidden until loaded */
+        }
+
         /* --- GMOD HINTS SYSTEM --- */
         #hint-container {
-            position: absolute; right: 20px; top: 40%;
-            display: flex; flex-direction: column; gap: 4px; z-index: 50;
-            pointer-events: none; /* Lets you click through them */
+            position: absolute; 
+            right: 20px; 
+            bottom: 30%; /* Positioned above the gun */
+            display: flex; flex-direction: column; gap: 8px; z-index: 50;
+            pointer-events: none; 
         }
         .gmod-hint {
             background: rgba(0, 0, 0, 0.65);
             color: white; font-size: 14px; font-weight: bold;
             padding: 6px 15px 6px 10px; display: flex; align-items: center; gap: 12px;
             text-shadow: 1px 1px 0px black; border-radius: 2px;
-            opacity: 0; transform: translateX(20px);
-            transition: opacity 0.2s ease, transform 0.2s ease;
+            /* Animation starting state: pushed down and invisible */
+            opacity: 0; transform: translateY(20px) scale(0.95);
+            transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .gmod-hint.show { opacity: 1; transform: translateX(0); }
+        /* Animation ending state: snapped into place */
+        .gmod-hint.show { opacity: 1; transform: translateY(0) scale(1); }
         
-        /* The classic green question mark */
         .hint-icon {
             color: #00ff00; font-size: 26px; font-weight: 900;
             text-shadow: 1px 1px 0px #004400, -1px -1px 0px #004400, 1px -1px 0px #004400, -1px 1px 0px #004400, 2px 2px 2px rgba(0,0,0,0.8);
@@ -95,6 +97,8 @@
         </div>
     </div>
 
+    <img src="Newtonvm.webp" id="viewmodel" alt="Weapon Viewmodel">
+
     <div id="hint-container">
         <div class="gmod-hint" id="hint-1">
             <span class="hint-icon">?</span>
@@ -106,25 +110,16 @@
         </div>
     </div>
 
-    <div id="blocker">
-        <div id="instructions">
-            <span style="font-size:36px">Click to Spawn</span><br>
-            <span style="font-size:16px; font-weight:normal; margin-top:10px; display:block;">
-                (W, A, S, D = Move, MOUSE = Look around)<br>Press ESC to release mouse
-            </span>
-        </div>
-    </div>
-
     <div id="game-canvas"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 
     <script>
-        // --- AUDIO PRELOAD ---
         const hintSound = new Audio('balloon_pop_cute.wav');
+        let engineFrozen = false; 
 
-        // --- LOADING & FAKE LAG LOGIC ---
+        // --- LOADING LOGIC ---
         const totalBlocks = 20;
         const progressBar = document.getElementById('progress-bar');
         for (let i = 0; i < totalBlocks; i++) {
@@ -136,7 +131,6 @@
         const blocks = document.querySelectorAll('.bar-block');
         const statusText = document.getElementById('status-text');
         let currentBlock = 0;
-        let engineFrozen = false; // Controls our fake lag spike
 
         const loadingInterval = setInterval(() => {
             if (currentBlock < totalBlocks) {
@@ -147,41 +141,39 @@
                 else if (progress >= 0.8) statusText.innerText = "Lua started...";
             } else {
                 clearInterval(loadingInterval);
-                
-                // 1. INSTANTLY hide loading screen
                 document.getElementById('loading-overlay').style.display = 'none';
                 
-                // 2. TRIGGER THE LAG SPIKE
                 engineFrozen = true; 
                 
                 setTimeout(() => {
-                    // Unfreeze the engine after 1 second
                     engineFrozen = false;
-                    document.getElementById('blocker').style.display = 'flex';
+                    document.getElementById('viewmodel').style.display = 'block';
 
-                    // 3. START HINT TIMERS
                     setTimeout(() => {
                         document.getElementById('hint-1').classList.add('show');
-                        hintSound.play().catch(e => console.log("Audio blocked by browser until user interaction"));
+                        hintSound.play().catch(e => console.log("Audio waiting for click interaction"));
                         
                         setTimeout(() => {
                             document.getElementById('hint-2').classList.add('show');
-                            hintSound.currentTime = 0; // Reset audio to play again immediately
-                            hintSound.play().catch(e => console.log("Audio blocked"));
-                        }, 2000); // 2 seconds after the first hint
-                        
-                    }, 5000); // 5 seconds after unfreezing
-                    
-                }, 1000); // 1-second engine freeze
+                            hintSound.currentTime = 0; 
+                            hintSound.play().catch(e => console.log("Audio waiting"));
+                        }, 2000); 
+                    }, 5000); 
+                }, 1000); 
             }
         }, 10000 / totalBlocks);
 
-        // --- 3D ENGINE LOGIC ---
+        // --- 3D ENGINE & MOVEMENT LOGIC ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let prevTime = performance.now();
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
+
+        // Viewmodel Bobbing Variables
+        const viewmodel = document.getElementById('viewmodel');
+        let bobTime = 0;
+        let currentBobX = 0, currentBobY = 0;
 
         init();
         animate();
@@ -217,12 +209,14 @@
             document.getElementById('game-canvas').appendChild(renderer.domElement);
 
             controls = new THREE.PointerLockControls(camera, document.body);
-            const blocker = document.getElementById('blocker');
-            const instructions = document.getElementById('instructions');
+            
+            // Click anywhere on the screen to lock the mouse and play
+            document.addEventListener('click', function () {
+                if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
+                    controls.lock();
+                }
+            });
 
-            instructions.addEventListener('click', function () { controls.lock(); });
-            controls.addEventListener('lock', function () { blocker.style.display = 'none'; });
-            controls.addEventListener('unlock', function () { blocker.style.display = 'flex'; });
             scene.add(controls.getObject());
 
             const onKeyDown = function (event) {
@@ -255,14 +249,12 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            
-            // FAKE LAG: If the engine is "frozen", we completely skip rendering and moving for this frame
             if (engineFrozen) return; 
 
-            if (controls.isLocked === true) {
-                const time = performance.now();
-                const delta = (time - prevTime) / 1000;
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
 
+            if (controls.isLocked === true) {
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
 
@@ -276,11 +268,29 @@
 
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
-                prevTime = time;
-            } else {
-                // Keep time updating even if paused so we don't shoot forward when unpausing
-                prevTime = performance.now(); 
+                
+                // --- VIEWMODEL BOBBING MATH ---
+                // Calculate how fast the player is actually moving
+                const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
+                let targetBobX = 0;
+                let targetBobY = 0;
+
+                if (movementSpeed > 10) {
+                    bobTime += delta * 12; // Controls how fast the gun bobs
+                    targetBobX = Math.sin(bobTime) * 15; // Left/Right sway
+                    targetBobY = Math.abs(Math.cos(bobTime)) * 12; // Up/Down bounce
+                } else {
+                    bobTime = 0; // Reset when standing still
+                }
+
+                // Smoothly interpolate the gun position so it doesn't snap
+                currentBobX += (targetBobX - currentBobX) * 10 * delta;
+                currentBobY += (targetBobY - currentBobY) * 10 * delta;
+
+                viewmodel.style.transform = `translate(${currentBobX}px, ${currentBobY}px)`;
             }
+
+            prevTime = time;
             renderer.render(scene, camera);
         }
     </script>
