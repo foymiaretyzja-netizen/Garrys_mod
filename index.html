@@ -10,9 +10,9 @@
             margin: 0;
             padding: 0;
             height: 100%;
+            width: 100%;
             overflow: hidden;
             background-color: #000;
-            /* Using Helvetica/Arial Bold to match your screenshot */
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
@@ -42,40 +42,45 @@
         #ui-wrapper {
             position: relative;
             z-index: 10;
-            padding: 40px 50px;
+            padding: 60px 70px; /* Slightly more breathing room */
         }
 
         .logo {
-            width: 160px; /* Smaller as requested */
-            margin-bottom: 20px;
+            width: 240px; /* Increased logo size */
+            margin-bottom: 25px;
             display: block;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
         }
 
         .menu-container {
             display: flex;
             flex-direction: column;
-            gap: 0px; /* Tight spacing like Gmod */
+            gap: 2px;
         }
 
         .menu-item {
             color: #FFFFFF;
-            font-size: 28px;
-            font-weight: 700; /* Bold */
+            font-size: 22px; /* Smaller, sharper text */
+            font-weight: 700;
             text-decoration: none;
             cursor: pointer;
-            letter-spacing: -1px; /* Tighter letters like your screenshot */
-            line-height: 1.2;
-            /* Pure black undershadow */
+            letter-spacing: -0.5px;
+            line-height: 1.1;
             text-shadow: 2px 2px 0px #000000;
             user-select: none;
             transition: color 0.05s;
+            width: fit-content; /* Only clickable on the text itself */
         }
 
-        /* Spacing groups like the screenshot */
-        .group-space { margin-top: 25px; }
+        .group-space { margin-top: 20px; }
 
-        .menu-item:hover, .menu-item:active {
-            color: #FFFF00; /* Yellow highlight */
+        .menu-item:hover {
+            color: #FFFF00; /* Yellow hover */
+        }
+        
+        /* Optional: Active state for a quick "flash" when clicked */
+        .menu-item:active {
+            color: #FFFFFF;
         }
     </style>
 </head>
@@ -88,23 +93,23 @@
         <img src="GmodLOGO.png" alt="" class="logo">
         
         <div class="menu-container">
-            <a class="menu-item">Start New Game</a>
-            <a class="menu-item">Find Multiplayer Game</a>
+            <a class="menu-item" onclick="menuAction('Start Game')">Start New Game</a>
+            <a class="menu-item" onclick="menuAction('Multiplayer')">Find Multiplayer Game</a>
             
             <div class="group-space"></div>
             
-            <a class="menu-item">Addons</a>
-            <a class="menu-item">Dupes</a>
-            <a class="menu-item">Saves</a>
-            <a class="menu-item">Demos</a>
+            <a class="menu-item" onclick="menuAction('Addons')">Addons</a>
+            <a class="menu-item" onclick="menuAction('Dupes')">Dupes</a>
+            <a class="menu-item" onclick="menuAction('Saves')">Saves</a>
+            <a class="menu-item" onclick="menuAction('Demos')">Demos</a>
             
             <div class="group-space"></div>
             
-            <a class="menu-item">Options</a>
+            <a class="menu-item" onclick="menuAction('Options')">Options</a>
             
             <div class="group-space"></div>
             
-            <a class="menu-item">Quit</a>
+            <a class="menu-item" onclick="window.close()">Quit</a>
         </div>
     </div>
 
@@ -112,16 +117,24 @@
         // --- DATA SETUP ---
         const pngFiles = [2, 10, 12, 13, 15, 20, 21, 22, 23, 26, 30, 31, 33, 36, 45, 46, 47, 49, 50, 52];
         
-        // Audio
         const hoverSnd = new Audio('ui_hover.wav');
         const clickSnd = new Audio('ui_click.wav');
+
+        // Function for button actions
+        function menuAction(name) {
+            console.log("Action triggered: " + name);
+            // You can replace this alert with actual logic later
+            setTimeout(() => {
+                alert(name + " menu coming soon!");
+            }, 100);
+        }
 
         // --- BACKGROUND LOGIC ---
         let currentIdx = 1;
         
         function getImgPath() {
-            // Random number between 2 and 52 (adjust if you have 1.jpg)
-            const num = Math.floor(Math.random() * 51) + 2;
+            // Updated range to handle 1-52 based on your previous message
+            const num = Math.floor(Math.random() * 52) + 1;
             const ext = pngFiles.includes(num) ? 'png' : 'jpg';
             return `${num}.${ext}`;
         }
@@ -131,30 +144,28 @@
             const currentEl = document.getElementById(`bg-${currentIdx}`);
             const nextEl = document.getElementById(`bg-${nextIdx}`);
             
-            const newImg = getImgPath();
-            console.log("Loading Background:", newImg); // Check your browser console (F12) to see if it's finding the file
-
-            nextEl.style.backgroundImage = `url('${newImg}')`;
-            
-            // Reset Animation
+            nextEl.style.backgroundImage = `url('${getImgPath()}')`;
             nextEl.style.animation = 'none';
             nextEl.offsetHeight; 
             nextEl.style.animation = null;
 
-            // Fade
             nextEl.classList.add('active');
             currentEl.classList.remove('active');
-            
             currentIdx = nextIdx;
         }
 
         // Click/Hover Logic
         document.querySelectorAll('.menu-item').forEach(item => {
-            item.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play().catch(()=>{}); };
-            item.onclick = () => { clickSnd.currentTime = 0; clickSnd.play().catch(()=>{}); };
+            item.onmouseenter = () => { 
+                hoverSnd.currentTime = 0; 
+                hoverSnd.play().catch(()=>{}); 
+            };
+            item.onmousedown = () => { 
+                clickSnd.currentTime = 0; 
+                clickSnd.play().catch(()=>{}); 
+            };
         });
 
-        // Initialize and Start Loop
         window.onload = () => {
             document.getElementById('bg-1').style.backgroundImage = `url('${getImgPath()}')`;
             setInterval(swapBackground, 10000);
