@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,96 +7,83 @@
     <style>
         /* --- FONT & RESET --- */
         body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            background-color: #000;
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            overflow: hidden; background-color: #000;
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
         /* --- BACKGROUND LAYERS --- */
         .bg-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-size: cover;
-            background-position: center;
-            opacity: 0;
-            z-index: 1;
-            transition: opacity 2s ease-in-out;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover; background-position: center;
+            opacity: 0; z-index: 1; transition: opacity 2s ease-in-out;
         }
+        .bg-layer.active { opacity: 1; animation: gmodZoom 10s linear forwards; }
+        @keyframes gmodZoom { from { transform: scale(1); } to { transform: scale(1.08); } }
 
-        .bg-layer.active {
-            opacity: 1;
-            animation: gmodZoom 10s linear forwards;
-        }
-
-        @keyframes gmodZoom {
-            from { transform: scale(1); }
-            to { transform: scale(1.08); }
-        }
-
-        /* --- UI OVERLAY --- */
-        #ui-wrapper {
-            position: relative;
-            z-index: 10;
-            padding: 60px 70px;
-        }
-
-        .logo {
-            width: 240px; 
-            margin-bottom: 25px;
-            display: block;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5));
-        }
-
-        .menu-container {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
+        /* --- MAIN UI --- */
+        #ui-wrapper { position: relative; z-index: 10; padding: 60px 70px; }
+        .logo { width: 240px; margin-bottom: 25px; display: block; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.5)); }
+        .menu-container { display: flex; flex-direction: column; gap: 2px; }
         .menu-item {
-            color: #FFFFFF;
-            font-size: 22px; 
-            font-weight: 700;
-            text-decoration: none;
-            cursor: pointer;
-            letter-spacing: -0.5px;
-            line-height: 1.1;
-            text-shadow: 2px 2px 0px #000000;
-            user-select: none;
-            transition: color 0.05s;
-            width: fit-content;
+            color: #FFFFFF; font-size: 22px; font-weight: 700;
+            text-decoration: none; cursor: pointer; letter-spacing: -0.5px;
+            line-height: 1.1; text-shadow: 2px 2px 0px #000000;
+            user-select: none; transition: color 0.05s; width: fit-content;
         }
-
+        .menu-item:hover { color: #FFFF00; }
         .group-space { margin-top: 20px; }
 
-        .menu-item:hover {
-            color: #FFFF00;
-        }
-        
-        /* --- OPTIONS POPUP (MODAL) --- */
-        #options-overlay {
-            display: none; /* Hidden by default */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5); /* Dim background when open */
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
+        /* --- SAVES UI (THE WHITE OVERLAY) --- */
+        #saves-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; z-index: 200;
+            background: rgba(0, 0, 0, 0.7);
         }
 
-        #options-img {
-            max-width: 90%;
-            max-height: 90%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            pointer-events: auto; /* Ensures image itself doesn't close the menu */
+        .saves-window {
+            position: absolute; top: 5%; left: 5%; right: 5%; bottom: 5%;
+            display: flex; flex-direction: column;
+        }
+
+        /* Top Title */
+        .saves-title {
+            color: white; font-size: 24px; font-weight: 700;
+            text-shadow: 2px 2px 0px black; margin-bottom: 10px;
+        }
+
+        .saves-body { display: flex; flex: 1; gap: 10px; }
+
+        /* Left Sidebar */
+        .saves-sidebar { width: 200px; display: flex; flex-direction: column; gap: 5px; }
+        .side-item {
+            color: white; font-size: 14px; font-weight: 700;
+            cursor: pointer; text-shadow: 1px 1px 0px black;
+        }
+        .side-item:hover { color: #FFFF00; }
+        .side-item.active { color: #FFFF00; }
+
+        /* Main White Content Area */
+        .saves-content {
+            flex: 1; background: white; border: 1px solid #ccc;
+            display: flex; justify-content: center; align-items: center;
+            color: #666; font-size: 24px; font-weight: 700;
+        }
+
+        /* Back Button Bottom Right */
+        .back-btn {
+            position: absolute; bottom: 20px; right: 20px;
+            color: white; font-size: 24px; font-weight: 700;
+            text-shadow: 2px 2px 0px black; cursor: pointer;
+        }
+        .back-btn:hover { color: #FFFF00; }
+
+        /* Hide Options logic from previous step */
+        #options-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5);
+            z-index: 300; justify-content: center; align-items: center;
         }
     </style>
 </head>
@@ -108,29 +93,45 @@
     <div id="bg-2" class="bg-layer"></div>
 
     <div id="options-overlay" onclick="closeOptions()">
-        <img src="options.png" id="options-img" onclick="event.stopPropagation()">
+        <img src="options.png" style="max-width:90%;" onclick="event.stopPropagation()">
+    </div>
+
+    <div id="saves-overlay">
+        <div class="saves-window">
+            <div class="saves-title">Saves</div>
+            <div class="saves-body">
+                <div class="saves-sidebar">
+                    <div class="side-item active">My Saves</div>
+                    <div class="side-item">Subscribed</div>
+                    <div class="group-space"></div>
+                    <div class="side-item">Currently Popular</div>
+                    <div class="side-item">Top Rated</div>
+                    <div class="side-item">Latest Uploads</div>
+                    <div class="group-space"></div>
+                    <div class="side-item">Friends Uploads</div>
+                    <div class="side-item">My Uploads</div>
+                </div>
+                <div class="saves-content" id="saves-main-text">
+                    No saves found!
+                </div>
+            </div>
+            <div class="back-btn" onclick="closeSaves()">Back</div>
+        </div>
     </div>
 
     <div id="ui-wrapper">
         <img src="GmodLOGO.png" alt="" class="logo">
-        
         <div class="menu-container">
             <a class="menu-item">Start New Game</a>
             <a class="menu-item">Find Multiplayer Game</a>
-            
             <div class="group-space"></div>
-            
             <a class="menu-item">Addons</a>
             <a class="menu-item">Dupes</a>
-            <a class="menu-item">Saves</a>
+            <a class="menu-item" onclick="openSaves()">Saves</a>
             <a class="menu-item">Demos</a>
-            
             <div class="group-space"></div>
-            
             <a class="menu-item" onclick="openOptions()">Options</a>
-            
             <div class="group-space"></div>
-            
             <a class="menu-item" onclick="window.close()">Quit</a>
         </div>
     </div>
@@ -140,40 +141,41 @@
         const hoverSnd = new Audio('ui_hover.wav');
         const clickSnd = new Audio('ui_click.wav');
 
-        // --- POPUP LOGIC ---
-        function openOptions() {
-            document.getElementById('options-overlay').style.display = 'flex';
+        function openOptions() { document.getElementById('options-overlay').style.display = 'flex'; }
+        function closeOptions() { document.getElementById('options-overlay').style.display = 'none'; }
+
+        function openSaves() {
+            const overlay = document.getElementById('saves-overlay');
+            const content = document.getElementById('saves-main-text');
+            overlay.style.display = 'block';
+            content.innerText = "Loading..."; // Fake loading state
+            
+            setTimeout(() => {
+                content.innerText = "No saves found!";
+            }, 800);
         }
 
-        function closeOptions() {
-            document.getElementById('options-overlay').style.display = 'none';
-        }
+        function closeSaves() { document.getElementById('saves-overlay').style.display = 'none'; }
 
-        // --- BACKGROUND LOGIC ---
+        // Background Cycle Logic
         let currentIdx = 1;
         function getImgPath() {
             const num = Math.floor(Math.random() * 52) + 1;
             const ext = pngFiles.includes(num) ? 'png' : 'jpg';
             return `${num}.${ext}`;
         }
-
         function swapBackground() {
             const nextIdx = currentIdx === 1 ? 2 : 1;
-            const currentEl = document.getElementById(`bg-${currentIdx}`);
-            const nextEl = document.getElementById(`bg-${nextIdx}`);
-            
-            nextEl.style.backgroundImage = `url('${getImgPath()}')`;
-            nextEl.style.animation = 'none';
-            nextEl.offsetHeight; 
-            nextEl.style.animation = null;
-
-            nextEl.classList.add('active');
-            currentEl.classList.remove('active');
+            const curEl = document.getElementById(`bg-${currentIdx}`);
+            const nxtEl = document.getElementById(`bg-${nextIdx}`);
+            nxtEl.style.backgroundImage = `url('${getImgPath()}')`;
+            nxtEl.style.animation = 'none'; nxtEl.offsetHeight; nxtEl.style.animation = null;
+            nxtEl.classList.add('active'); curEl.classList.remove('active');
             currentIdx = nextIdx;
         }
 
-        // Sounds
-        document.querySelectorAll('.menu-item').forEach(item => {
+        // Apply sounds to everything clickable
+        document.querySelectorAll('.menu-item, .side-item, .back-btn').forEach(item => {
             item.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play().catch(()=>{}); };
             item.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play().catch(()=>{}); };
         });
