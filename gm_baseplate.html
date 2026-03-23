@@ -222,7 +222,6 @@
             window.close(); 
         });
 
-
         // --- LOADING LOGIC ---
         const totalBlocks = 20;
         const progressBar = document.getElementById('progress-bar');
@@ -274,7 +273,8 @@
         // --- 3D ENGINE & MOVEMENT LOGIC ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let isSprinting = false, isCrouching = false, canJump = false;
+        let isSprinting = false, isCrouching = false, canJump = false, jumpPressed = false;
+        let isNoclipping = false; // The new Fly Mode flag
         
         let prevTime = performance.now();
         const velocity = new THREE.Vector3();
@@ -308,12 +308,12 @@
             dirLight.position.set(0, 200, 100);
             scene.add(dirLight);
 
-            // Create flat grass terrain using repeating texture
+            // Create flat grass terrain
             const textureLoader = new THREE.TextureLoader();
             const grassTexture = textureLoader.load('grass01.jpg');
             grassTexture.wrapS = THREE.RepeatWrapping;
             grassTexture.wrapT = THREE.RepeatWrapping;
-            grassTexture.repeat.set(100, 100); // 100x100 tiles over 2000x2000 plane
+            grassTexture.repeat.set(100, 100); 
 
             const floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
             floorGeometry.rotateX(-Math.PI / 2);
@@ -321,11 +321,7 @@
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             scene.add(floor);
 
-            const gridHelper = new THREE.GridHelper(2000, 200, 0x000000, 0x000000);
-            gridHelper.material.opacity = 0.2;
-            gridHelper.material.transparent = true;
-            gridHelper.position.y = 0.1; 
-            scene.add(gridHelper);
+            // Removed GridHelper entirely for realism
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -373,10 +369,15 @@
                     case 'ArrowDown': case 'KeyS': moveBackward = true; break;
                     case 'ArrowRight': case 'KeyD': moveRight = true; break;
                     case 'Space': 
-                        if (canJump) { velocity.y += jumpForce; canJump = false; } 
+                        jumpPressed = true;
+                        if (canJump && !isNoclipping) { velocity.y += jumpForce; canJump = false; } 
                         break;
                     case 'ShiftLeft': isSprinting = true; break;
                     case 'ControlLeft': case 'KeyC': isCrouching = true; break;
+                    case 'KeyV': 
+                        isNoclipping = !isNoclipping; 
+                        if(isNoclipping) velocity.set(0,0,0); // Kill standard momentum instantly
+                        break;
                 }
             };
             const onKeyUp = function (event) {
@@ -387,6 +388,7 @@
                     case 'ArrowRight': case 'KeyD': moveRight = false; break;
                     case 'ShiftLeft': isSprinting = false; break;
                     case 'ControlLeft': case 'KeyC': isCrouching = false; break;
+                    case 'Space': jumpPressed = false; break;
                 }
             };
 
@@ -409,49 +411,77 @@
             const delta = (time - prevTime) / 1000;
 
             if (controls.isLocked === true && !isPaused) {
-                const friction = canJump ? 10.0 : 1.5; 
-                velocity.x -= velocity.x * friction * delta;
-                velocity.z -= velocity.z * friction * delta;
                 
-                velocity.y -= gravity * delta;
+                if (isNoclipping) {
+                    // --- NOCLIP (FLY MODE) PHYSICS ---
+                    const noclipSpeed = isSprinting ? 500 : 200;
+                    
+                    // Fly where the camera points
+                    const camDir = new THREE.Vector3();
+                    camera.getWorldDirection(camDir);
+                    
+                    if (moveForward) controls.getObject().position.addScaledVector(camDir, noclipSpeed * delta);
+                    if (moveBackward) controls.getObject().position.addScaledVector(camDir, -noclipSpeed * delta);
+                    
+                    // Left and right
+                    if (moveLeft) controls.moveRight(-noclipSpeed * delta);
+                    if (moveRight) controls.moveRight(noclipSpeed * delta);
+                    
+                    // Straight Up / Down
+                    if (jumpPressed) controls.getObject().position.y += noclipSpeed * delta;
+                    if (isCrouching) controls.getObject().position.y -= noclipSpeed * delta;
 
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize(); 
+                    // Sync the internal ground tracker so we don't snap when we turn noclip off
+                    playerBaseY = controls.getObject().position.y - cameraOffset;
+                    velocity.set(0, 0, 0); 
+                    
+                } else {
+                    // --- STANDARD WALKING PHYSICS ---
+                    const friction = canJump ? 10.0 : 1.5; 
+                    velocity.x -= velocity.x * friction * delta;
+                    velocity.z -= velocity.z * friction * delta;
+                    
+                    velocity.y -= gravity * delta;
 
-                let speed = 400.0; 
-                if (isCrouching) speed = 150.0;
-                else if (isSprinting) speed = 750.0;
+                    direction.z = Number(moveForward) - Number(moveBackward);
+                    direction.x = Number(moveRight) - Number(moveLeft);
+                    direction.normalize(); 
 
-                const controlMult = canJump ? 1.0 : 0.2; 
-                
-                if (moveForward || moveBackward) velocity.z -= direction.z * speed * controlMult * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * speed * controlMult * delta;
+                    let speed = 400.0; 
+                    if (isCrouching) speed = 150.0;
+                    else if (isSprinting) speed = 750.0;
 
-                controls.moveRight(-velocity.x * delta);
-                controls.moveForward(-velocity.z * delta);
-                
-                const wasInAir = !canJump;
-                playerBaseY += velocity.y * delta;
-                
-                if (playerBaseY < 0) { 
-                    playerBaseY = 0;
-                    if (wasInAir && velocity.y < -15) {
-                        landDip = Math.min(80, Math.abs(velocity.y) * 1.5); 
+                    const controlMult = canJump ? 1.0 : 0.2; 
+                    
+                    if (moveForward || moveBackward) velocity.z -= direction.z * speed * controlMult * delta;
+                    if (moveLeft || moveRight) velocity.x -= direction.x * speed * controlMult * delta;
+
+                    controls.moveRight(-velocity.x * delta);
+                    controls.moveForward(-velocity.z * delta);
+                    
+                    const wasInAir = !canJump;
+                    playerBaseY += velocity.y * delta;
+                    
+                    if (playerBaseY < 0) { 
+                        playerBaseY = 0;
+                        if (wasInAir && velocity.y < -15) {
+                            landDip = Math.min(80, Math.abs(velocity.y) * 1.5); 
+                        }
+                        velocity.y = 0;
+                        canJump = true;
                     }
-                    velocity.y = 0;
-                    canJump = true;
-                }
 
-                const targetOffset = isCrouching ? 5 : 10;
-                cameraOffset += (targetOffset - cameraOffset) * 12 * delta;
-                controls.getObject().position.y = playerBaseY + cameraOffset;
+                    const targetOffset = isCrouching ? 5 : 10;
+                    cameraOffset += (targetOffset - cameraOffset) * 12 * delta;
+                    controls.getObject().position.y = playerBaseY + cameraOffset;
+                }
 
                 // --- VIEWMODEL PHYSICS ---
                 const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
                 let targetBobX = 0, targetBobY = 0;
 
-                if (movementSpeed > 10 && canJump) {
+                // Viewmodel stops bobbing if noclipping (because movementSpeed is 0)
+                if (movementSpeed > 10 && canJump && !isNoclipping) {
                     const bobSpeed = isSprinting ? 14 : 9;
                     bobTime += delta * bobSpeed; 
                     targetBobX = Math.sin(bobTime) * (isSprinting ? 15 : 10);
@@ -478,7 +508,6 @@
 
                 const finalX = currentBobX + currentSwayX + moveDragX;
                 const finalY = currentBobY + currentSwayY + landDip;
-                
                 const finalRotation = currentSwayX * 0.03; 
 
                 viewmodel.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
