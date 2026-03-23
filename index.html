@@ -1,1 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garry's Mod</title>
+    <style>
+        /* Base page styling */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* Prevents scrollbars */
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Clean, modern font */
+            background-color: #000;
+            background-size: cover;
+            background-position: center;
+        }
 
+        /* Top left logo */
+        .logo {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            width: 350px; /* Adjust this width based on your actual image size */
+        }
+
+        /* Menu positioning */
+        .menu-container {
+            position: absolute;
+            bottom: 80px;
+            left: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between text links */
+        }
+
+        /* Text styling with pure black undershadow */
+        .menu-item {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            text-decoration: none;
+            cursor: pointer;
+            text-shadow: 2px 2px 0px black; /* Small pure black undershadow */
+            transition: color 0.1s ease-in-out;
+        }
+
+        /* Yellow highlight on click and hover */
+        .menu-item:hover, .menu-item:active {
+            color: yellow;
+        }
+    </style>
+</head>
+<body id="bg-container">
+
+    <img src="GmodLOGO.png" alt="Gmod Logo" class="logo">
+
+    <div class="menu-container">
+        <a class="menu-item">Start New Game</a>
+        <a class="menu-item">Find Multiplayer Game</a>
+        <a class="menu-item">Addons</a>
+        <a class="menu-item">Options</a>
+        <a class="menu-item">Quit</a>
+    </div>
+
+    <script>
+        // Picks a random number between 1 and 52
+        const randomBgNumber = Math.floor(Math.random() * 52) + 1;
+        
+        // Applies that number to the background image URL
+        document.getElementById('bg-container').style.backgroundImage = `url('${randomBgNumber}.jpg')`;
+    </script>
+</body>
+</html>
