@@ -55,7 +55,6 @@
             text-shadow: 2px 2px 0px black; margin-bottom: 10px;
         }
         .window-body { display: flex; flex: 1; gap: 10px; overflow: hidden; }
-        
         .sidebar { width: 200px; display: flex; flex-direction: column; gap: 5px; }
         .side-item {
             color: white; font-size: 14px; font-weight: 700;
@@ -63,28 +62,21 @@
         }
         .side-item:hover, .side-item.active { color: #FFFF00; }
 
-        /* Main Content Area */
         .content-area {
             flex: 1; background: white; border: 1px solid #ccc;
             overflow-y: auto; display: block; padding: 0;
         }
 
-        /* --- SERVER ROW STYLING --- */
+        /* --- SERVER ROW --- */
         .server-row {
             display: flex; align-items: center; padding: 8px 15px;
             border-bottom: 1px solid #eee; cursor: pointer;
-            transition: background 0.2s; animation: slideIn 0.3s ease-out forwards;
         }
         .server-row:hover { background: #f0f8ff; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         .server-info { flex: 1; }
         .server-name { font-weight: 700; font-size: 14px; color: #333; }
         .server-meta { font-size: 11px; color: #777; margin-top: 2px; }
-        .gm-badge { 
-            background: #3498db; color: white; padding: 2px 6px; 
-            border-radius: 3px; font-size: 10px; font-weight: 700; margin-right: 5px;
-        }
+        .gm-badge { background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin-right: 5px; }
         .player-count { font-weight: 700; color: #555; font-size: 13px; width: 60px; text-align: right; }
         .join-btn { color: #3498db; margin-left: 15px; font-size: 18px; }
 
@@ -94,6 +86,21 @@
             text-shadow: 2px 2px 0px black; cursor: pointer; z-index: 10;
         }
         .back-btn:hover { color: #FFFF00; }
+
+        /* --- CONNECTION TERMINAL POPUP --- */
+        #terminal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            z-index: 500; justify-content: center; align-items: center;
+        }
+        .terminal-box {
+            background: #2a2a2a; border: 2px solid #444; width: 450px; padding: 20px;
+            color: #ccc; font-family: 'Courier New', Courier, monospace; font-size: 14px;
+            box-shadow: 0 0 30px rgba(0,0,0,1);
+        }
+        .terminal-header { color: white; font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .terminal-close { float: right; cursor: pointer; color: #888; }
+        .terminal-close:hover { color: white; }
 
         #options-overlay {
             display: none; position: fixed; top: 0; left: 0;
@@ -107,6 +114,24 @@
     <div id="bg-1" class="bg-layer active"></div>
     <div id="bg-2" class="bg-layer"></div>
     <div class="version-label">v2026.03.22</div>
+
+    <div id="terminal-overlay" onclick="closeTerminal()">
+        <div class="terminal-box" onclick="event.stopPropagation()">
+            <div class="terminal-header">
+                Connection Error
+                <span class="terminal-close" onclick="closeTerminal()">[X]</span>
+            </div>
+            <div>Connecting to 192.168.100.42:27015...</div>
+            <div style="margin-top:10px;">Retrying connection to server (1)...</div>
+            <div>Retrying connection to server (2)...</div>
+            <div>Retrying connection to server (3)...</div>
+            <div>Retrying connection to server (4)...</div>
+            <div style="color:#ff5555; margin-top:15px; font-weight:bold;">
+                Failed to connect after 4 retries.
+            </div>
+            <div style="margin-top:10px; color:#888;">Unable to connect to server.</div>
+        </div>
+    </div>
 
     <div id="options-overlay" onclick="closeOptions()">
         <img src="options.png" style="max-width:90%;" onclick="event.stopPropagation()">
@@ -152,20 +177,20 @@
             'Demos': ['My Demos', 'Trending']
         };
 
-        // --- SERVER DATA ---
         let servers = [
             { name: "ICE - CWRP | Phase II", map: "rp_venator", gm: "CWRP", players: 84, max: 100 },
             { name: "Zombie Survival | US West", map: "zs_office", gm: "Zombie Survival", players: 32, max: 64 },
             { name: "TTT - Fun & Fast", map: "ttt_67th_way", gm: "TTT", players: 12, max: 24 },
             { name: "DarkRP - Custom Jobs", map: "rp_downtown", gm: "DarkRP", players: 110, max: 128 },
             { name: "Prop Hunt | Classic", map: "ph_house", gm: "Prop Hunt", players: 0, max: 32 },
-            { name: "Sandbox - Build & Destroy", map: "gm_construct", gm: "Sandbox", players: 5, max: 16 },
-            { name: "Murder | 24/7", map: "mu_clue", gm: "Murder", players: 8, max: 10 },
-            { name: "StarWars RP | Serious", map: "rp_anaxes", gm: "SWRP", players: 45, max: 80 }
+            { name: "Sandbox - Build", map: "gm_construct", gm: "Sandbox", players: 5, max: 16 }
         ];
 
         function openOptions() { document.getElementById('options-overlay').style.display = 'flex'; }
         function closeOptions() { document.getElementById('options-overlay').style.display = 'none'; }
+        
+        function openTerminal() { document.getElementById('terminal-overlay').style.display = 'flex'; }
+        function closeTerminal() { document.getElementById('terminal-overlay').style.display = 'none'; }
 
         function openWindow(type) {
             const overlay = document.getElementById('universal-overlay');
@@ -174,7 +199,6 @@
             const content = document.getElementById('win-content');
 
             title.innerText = type;
-            content.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#666; font-size:24px; font-weight:700;">Loading...</div>`;
             sidebar.innerHTML = '';
             menuData[type].forEach((item, index) => {
                 const div = document.createElement('div');
@@ -183,11 +207,12 @@
                 div.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play(); };
                 sidebar.appendChild(div);
             });
+            
+            // REMOVED FADE/LOADING DELAY - Appears instantly
+            content.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#666; font-size:24px; font-weight:700;">No ${type.toLowerCase()} found!</div>`;
             overlay.style.display = 'block';
-            setTimeout(() => { content.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#666; font-size:24px; font-weight:700;">No ${type.toLowerCase()} found!</div>`; }, 800);
         }
 
-        // --- SERVER BROWSER LOGIC ---
         function openServerBrowser() {
             const overlay = document.getElementById('universal-overlay');
             const title = document.getElementById('win-title');
@@ -195,24 +220,13 @@
             const content = document.getElementById('win-content');
 
             title.innerText = "Server List";
-            sidebar.innerHTML = `
-                <div class="side-item active">Internet</div>
-                <div class="side-item">Favorites</div>
-                <div class="side-item">History</div>
-                <div class="group-space"></div>
-                <div class="side-item">Legacy Browser</div>
-            `;
-            content.innerHTML = ''; // Clear for 1-by-1 load
+            sidebar.innerHTML = `<div class="side-item active">Internet</div><div class="side-item">Favorites</div><div class="side-item">History</div>`;
+            content.innerHTML = '';
             overlay.style.display = 'block';
 
-            // Sort servers by player count initially
             servers.sort((a, b) => b.players - a.players);
-
-            // Load one by one
             servers.forEach((s, i) => {
-                setTimeout(() => {
-                    renderServerRow(s);
-                }, i * 150); // 150ms delay between each server
+                setTimeout(() => { renderServerRow(s); }, i * 100);
             });
         }
 
@@ -220,33 +234,20 @@
             const content = document.getElementById('win-content');
             const row = document.createElement('div');
             row.className = 'server-row';
-            row.innerHTML = `
-                <div class="server-info">
-                    <div class="server-name">${s.name}</div>
-                    <div class="server-meta"><span class="gm-badge">${s.gm}</span> ${s.map}</div>
-                </div>
-                <div class="player-count">${s.players} / ${s.max}</div>
-                <div class="join-btn">▶</div>
-            `;
+            row.innerHTML = `<div class="server-info"><div class="server-name">${s.name}</div><div class="server-meta"><span class="gm-badge">${s.gm}</span> ${s.map}</div></div><div class="player-count">${s.players} / ${s.max}</div><div class="join-btn">▶</div>`;
             row.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play(); };
-            row.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play(); };
+            row.onmousedown = () => { clickSnd.currentTime = 0; clickSnd.play(); openTerminal(); };
             content.appendChild(row);
         }
 
         function refreshServerList() {
-            // Randomly update player counts for "live" feel
             servers.forEach(s => {
-                const change = Math.floor(Math.random() * 3) - 1; // -1, 0, or +1
+                const change = Math.floor(Math.random() * 3) - 1;
                 s.players = Math.max(0, Math.min(s.max, s.players + change));
             });
-            
-            // Re-sort
             servers.sort((a, b) => b.players - a.players);
-
-            // If the browser is currently open, refresh the UI
             const overlay = document.getElementById('universal-overlay');
-            const title = document.getElementById('win-title');
-            if (overlay.style.display === 'block' && title.innerText === "Server List") {
+            if (overlay.style.display === 'block' && document.getElementById('win-title').innerText === "Server List") {
                 document.getElementById('win-content').innerHTML = '';
                 servers.forEach(s => renderServerRow(s));
             }
@@ -254,7 +255,6 @@
 
         function closeWindow() { document.getElementById('universal-overlay').style.display = 'none'; }
 
-        // BG Logic
         let currentIdx = 1;
         function getImgPath() {
             const num = Math.floor(Math.random() * 52) + 1;
@@ -279,7 +279,7 @@
         window.onload = () => {
             document.getElementById('bg-1').style.backgroundImage = `url('${getImgPath()}')`;
             setInterval(swapBackground, 10000);
-            setInterval(refreshServerList, 5000); // Live player updates every 5 seconds
+            setInterval(refreshServerList, 60000); // REFRESH EVERY 1 MINUTE
         };
     </script>
 </body>
