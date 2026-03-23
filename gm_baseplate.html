@@ -24,7 +24,7 @@
         }
 
         .center-stage { display: flex; flex-direction: column; align-items: center; transform: translateY(-20px); }
-        .gmod-logo-load { max-width: 250px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
+        .gmod-logo { max-width: 250px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
 
         .notepad-spinner {
             width: 32px; height: 32px; background-color: #ffda47;
@@ -45,9 +45,9 @@
 
         /* --- 2D VIEWMODEL --- */
         @keyframes pulseGlow {
-            0% { filter: drop-shadow(0px 0px 5px rgba(0, 150, 255, 0.3)); }
-            50% { filter: drop-shadow(0px 0px 20px rgba(0, 150, 255, 0.7)); }
-            100% { filter: drop-shadow(0px 0px 5px rgba(0, 150, 255, 0.3)); }
+            0% { filter: drop-shadow(0px 0px 3px rgba(0, 150, 255, 0.15)); }
+            50% { filter: drop-shadow(0px 0px 10px rgba(0, 150, 255, 0.4)); }
+            100% { filter: drop-shadow(0px 0px 3px rgba(0, 150, 255, 0.15)); }
         }
 
         #viewmodel {
@@ -108,7 +108,7 @@
             transition: background 0.1s, color 0.1s;
         }
         .menu-btn:hover { background: rgba(255,255,255,0.1); border-radius: 2px; }
-        .menu-spacer { height: 15px; } /* Creates the gaps between categories */
+        .menu-spacer { height: 15px; }
 
         /* --- SUB-MENU (WHITE BOX) --- */
         #sub-menu-overlay {
@@ -124,7 +124,6 @@
         }
         .sub-menu-back:hover { text-decoration: underline; }
 
-        /* Flash bang effect for disconnect */
         #disconnect-flash {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: black; z-index: 99999; display: none;
@@ -135,7 +134,7 @@
 
     <div id="loading-overlay">
         <div class="center-stage">
-            <img src="GmodLOGO.png" class="gmod-logo-load" alt="Gmod Logo">
+            <img src="Garry's_Mod_logo.svg.png" class="gmod-logo" alt="Loading Logo">
             <div class="notepad-spinner">
                 <div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>
             </div>
@@ -148,7 +147,7 @@
 
     <div id="pause-menu">
         <div class="sidebar">
-            <img src="GmodLOGO.png" class="menu-logo" alt="Gmod Logo">
+            <img src="GmodLOGO.png" class="menu-logo" alt="Gmod Menu Logo">
             <div class="menu-items">
                 <button class="menu-btn" id="btn-resume">Resume Game</button>
                 <div class="menu-spacer"></div>
@@ -197,7 +196,7 @@
         const subMenuMessage = document.getElementById('sub-menu-message');
 
         document.getElementById('btn-resume').addEventListener('click', () => {
-            controls.lock(); // This will automatically hide the menu via the 'lock' event
+            controls.lock(); 
         });
 
         document.querySelectorAll('.sub-trigger').forEach(btn => {
@@ -214,15 +213,13 @@
 
         document.getElementById('btn-disconnect').addEventListener('click', () => {
             document.getElementById('disconnect-flash').style.display = 'block';
-            // Fake source engine lag during disconnect
             setTimeout(() => {
-                // In a real app this would redirect to main menu
-                window.location.reload(); 
+                window.location.href = 'index.html'; 
             }, 800);
         });
 
         document.getElementById('btn-quit').addEventListener('click', () => {
-            window.close(); // Only works if tab was opened by a script, but standard practice
+            window.close(); 
         });
 
 
@@ -311,9 +308,16 @@
             dirLight.position.set(0, 200, 100);
             scene.add(dirLight);
 
+            // Create flat grass terrain using repeating texture
+            const textureLoader = new THREE.TextureLoader();
+            const grassTexture = textureLoader.load('grass01.jpg');
+            grassTexture.wrapS = THREE.RepeatWrapping;
+            grassTexture.wrapT = THREE.RepeatWrapping;
+            grassTexture.repeat.set(100, 100); // 100x100 tiles over 2000x2000 plane
+
             const floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100);
             floorGeometry.rotateX(-Math.PI / 2);
-            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
+            const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, roughness: 0.8 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             scene.add(floor);
 
@@ -330,7 +334,6 @@
 
             controls = new THREE.PointerLockControls(camera, document.body);
             
-            // Pointer Lock Event Listeners for Pause Menu
             controls.addEventListener('unlock', function () {
                 if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
                     pauseMenu.style.display = 'block';
@@ -340,12 +343,11 @@
 
             controls.addEventListener('lock', function () {
                 pauseMenu.style.display = 'none';
-                subMenuOverlay.style.display = 'none'; // reset submenu
+                subMenuOverlay.style.display = 'none'; 
                 isPaused = false;
             });
 
             document.addEventListener('click', function (e) {
-                // Only lock if we aren't clicking inside the pause menu
                 if (!isPaused && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
                     controls.lock();
                 }
@@ -353,7 +355,6 @@
 
             document.addEventListener('mousemove', function(event) {
                 if (controls.isLocked) {
-                    // UPDATED: Less aggressive translation, bounds tightened
                     targetSwayX -= event.movementX * 0.15; 
                     targetSwayY += event.movementY * 0.15; 
                     
@@ -478,7 +479,6 @@
                 const finalX = currentBobX + currentSwayX + moveDragX;
                 const finalY = currentBobY + currentSwayY + landDip;
                 
-                // UPDATED: Significantly reduced rotation to keep the gun locked-in
                 const finalRotation = currentSwayX * 0.03; 
 
                 viewmodel.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
