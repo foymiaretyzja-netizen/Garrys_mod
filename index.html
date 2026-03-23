@@ -10,49 +10,76 @@
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden; /* Prevents scrollbars */
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Clean, modern font */
+            overflow: hidden; 
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background-color: #000;
-            background-size: cover;
-            background-position: center;
         }
 
-        /* Top left logo */
+        /* --- BACKGROUND ZOOM & FADE SETUP --- */
+        /* We use two layers to crossfade smoothly */
+        .bg-layer {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            z-index: -1; /* Keeps it behind the menu */
+            transition: opacity 2s ease-in-out; /* The 2-second slow fade */
+        }
+
+        /* When a layer is active, it fades in and starts zooming */
+        .bg-layer.active {
+            opacity: 1;
+            animation: zoomIn 10s linear forwards; /* 10-second slow zoom */
+        }
+
+        @keyframes zoomIn {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        /* --- LOGO & MENU --- */
+        /* Smaller logo */
         .logo {
             position: absolute;
             top: 30px;
             left: 30px;
-            width: 350px; /* Adjust this width based on your actual image size */
+            width: 200px; /* Reduced from 350px */
+            z-index: 10;
         }
 
-        /* Menu positioning */
+        /* Menu moved under the logo */
         .menu-container {
             position: absolute;
-            bottom: 80px;
-            left: 50px;
+            top: 150px; /* Placed directly below the smaller logo */
+            left: 35px; /* Aligned slightly inward from the logo edge */
             display: flex;
             flex-direction: column;
-            gap: 15px; /* Space between text links */
+            gap: 10px;
+            z-index: 10;
         }
 
-        /* Text styling with pure black undershadow */
+        /* Smaller text with the same black undershadow */
         .menu-item {
             color: white;
-            font-size: 28px;
+            font-size: 20px; /* Reduced from 28px */
             font-weight: bold;
             text-decoration: none;
             cursor: pointer;
-            text-shadow: 2px 2px 0px black; /* Small pure black undershadow */
+            text-shadow: 2px 2px 0px black; 
             transition: color 0.1s ease-in-out;
         }
 
-        /* Yellow highlight on click and hover */
+        /* Yellow highlight */
         .menu-item:hover, .menu-item:active {
             color: yellow;
         }
     </style>
 </head>
-<body id="bg-container">
+<body>
+
+    <div id="bg-layer-1" class="bg-layer active"></div>
+    <div id="bg-layer-2" class="bg-layer"></div>
 
     <img src="GmodLOGO.png" alt="Gmod Logo" class="logo">
 
@@ -65,11 +92,63 @@
     </div>
 
     <script>
-        // Picks a random number between 1 and 52
-        const randomBgNumber = Math.floor(Math.random() * 52) + 1;
-        
-        // Applies that number to the background image URL
-        document.getElementById('bg-container').style.backgroundImage = `url('${randomBgNumber}.jpg')`;
+        // --- AUDIO SETUP ---
+        // Preload the sound files
+        const hoverSound = new Audio('ui_hover.wav');
+        const clickSound = new Audio('ui_click.wav');
+
+        // Lower the volume a bit so it doesn't blast your ears (optional)
+        hoverSound.volume = 0.5;
+        clickSound.volume = 0.5;
+
+        // Attach sounds to all menu items
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            // Play hover sound when mouse enters the text
+            item.addEventListener('mouseenter', () => {
+                hoverSound.currentTime = 0; // Rewind to start so it can trigger rapidly
+                hoverSound.play().catch(e => console.log("Audio play prevented by browser until user interaction."));
+            });
+
+            // Play click sound when clicked
+            item.addEventListener('click', () => {
+                clickSound.currentTime = 0;
+                clickSound.play();
+            });
+        });
+
+        // --- BACKGROUND SLIDESHOW SETUP (1-50.jpg) ---
+        let currentLayer = 1;
+
+        // Give the first layer a starting image right away
+        document.getElementById('bg-layer-1').style.backgroundImage = `url('${Math.floor(Math.random() * 50) + 1}.jpg')`;
+
+        function changeBackground() {
+            // Figure out which layer is hidden right now
+            const nextLayer = currentLayer === 1 ? 2 : 1;
+            const randomBg = Math.floor(Math.random() * 50) + 1; // Now 1 to 50
+            
+            const nextBgElement = document.getElementById('bg-layer-' + nextLayer);
+            const currentBgElement = document.getElementById('bg-layer-' + currentLayer);
+
+            // Load the new image into the hidden layer
+            nextBgElement.style.backgroundImage = `url('${randomBg}.jpg')`;
+
+            // A tiny trick to restart the CSS zoom animation from the beginning
+            nextBgElement.style.animation = 'none';
+            nextBgElement.offsetHeight; /* triggers browser reflow */
+            nextBgElement.style.animation = null;
+
+            // Fade the new one in, fade the old one out
+            nextBgElement.classList.add('active');
+            currentBgElement.classList.remove('active');
+
+            // Update our tracker
+            currentLayer = nextLayer;
+        }
+
+        // Run the background swap every 10 seconds (10000 milliseconds)
+        setInterval(changeBackground, 10000);
     </script>
 </body>
 </html>
