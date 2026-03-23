@@ -44,35 +44,35 @@
         .bar-block.filled { background-color: #f2f2f2; }
 
         /* --- 2D VIEWMODEL --- */
+        @keyframes pulseGlow {
+            0% { filter: drop-shadow(0px 0px 5px rgba(0, 150, 255, 0.3)); }
+            50% { filter: drop-shadow(0px 0px 20px rgba(0, 150, 255, 0.7)); }
+            100% { filter: drop-shadow(0px 0px 5px rgba(0, 150, 255, 0.3)); }
+        }
+
         #viewmodel {
             position: absolute; 
-            bottom: -50px; /* Sunk slightly outside the canvas to hide edges during bobbing */
-            right: -50px; 
+            bottom: -50px; right: -50px; 
             width: 45%; max-width: 600px; 
-            z-index: 5; 
-            pointer-events: none; /* Prevents the image from blocking mouse clicks */
+            z-index: 5; pointer-events: none; 
             transform-origin: bottom right;
-            display: none; /* Hidden until loaded */
+            display: none; 
+            animation: pulseGlow 4s infinite ease-in-out;
         }
 
         /* --- GMOD HINTS SYSTEM --- */
         #hint-container {
-            position: absolute; 
-            right: 20px; 
-            bottom: 30%; /* Positioned above the gun */
+            position: absolute; right: 20px; bottom: 30%; 
             display: flex; flex-direction: column; gap: 8px; z-index: 50;
             pointer-events: none; 
         }
         .gmod-hint {
-            background: rgba(0, 0, 0, 0.65);
-            color: white; font-size: 14px; font-weight: bold;
+            background: rgba(0, 0, 0, 0.65); color: white; font-size: 14px; font-weight: bold;
             padding: 6px 15px 6px 10px; display: flex; align-items: center; gap: 12px;
             text-shadow: 1px 1px 0px black; border-radius: 2px;
-            /* Animation starting state: pushed down and invisible */
             opacity: 0; transform: translateY(20px) scale(0.95);
-            transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        /* Animation ending state: snapped into place */
         .gmod-hint.show { opacity: 1; transform: translateY(0) scale(1); }
         
         .hint-icon {
@@ -100,14 +100,8 @@
     <img src="Newtonvm.webp" id="viewmodel" alt="Weapon Viewmodel">
 
     <div id="hint-container">
-        <div class="gmod-hint" id="hint-1">
-            <span class="hint-icon">?</span>
-            <span>Hold 'q' to open the SPAWN MENU</span>
-        </div>
-        <div class="gmod-hint" id="hint-2">
-            <span class="hint-icon">?</span>
-            <span>You can turn off hints in the CONTEXT MENU</span>
-        </div>
+        <div class="gmod-hint" id="hint-1"><span class="hint-icon">?</span><span>Hold 'q' to open the SPAWN MENU</span></div>
+        <div class="gmod-hint" id="hint-2"><span class="hint-icon">?</span><span>You can turn off hints in the CONTEXT MENU</span></div>
     </div>
 
     <div id="game-canvas"></div>
@@ -150,27 +144,39 @@
                     document.getElementById('viewmodel').style.display = 'block';
 
                     setTimeout(() => {
-                        document.getElementById('hint-1').classList.add('show');
-                        hintSound.play().catch(e => console.log("Audio waiting for click interaction"));
+                        const hint1 = document.getElementById('hint-1');
+                        hint1.classList.add('show');
+                        hintSound.play().catch(e => {});
+                        setTimeout(() => hint1.classList.remove('show'), 10000); // Fade out after 10s
                         
                         setTimeout(() => {
-                            document.getElementById('hint-2').classList.add('show');
+                            const hint2 = document.getElementById('hint-2');
+                            hint2.classList.add('show');
                             hintSound.currentTime = 0; 
-                            hintSound.play().catch(e => console.log("Audio waiting"));
+                            hintSound.play().catch(e => {});
+                            setTimeout(() => hint2.classList.remove('show'), 10000); // Fade out after 10s
                         }, 2000); 
                     }, 5000); 
                 }, 1000); 
             }
         }, 10000 / totalBlocks);
 
-        // --- 3D ENGINE & MOVEMENT LOGIC ---
+        // --- 3D ENGINE & ADVANCED MOVEMENT LOGIC ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let isSprinting = false, isCrouching = false, canJump = false;
+        
         let prevTime = performance.now();
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
 
-        // Viewmodel Bobbing Variables
+        // Physics variables
+        let playerBaseY = 0; 
+        let cameraOffset = 10; // Normal height
+        const gravity = 40.0;
+        const jumpForce = 20.0;
+
+        // Viewmodel Variables
         const viewmodel = document.getElementById('viewmodel');
         let bobTime = 0;
         let currentBobX = 0, currentBobY = 0;
@@ -181,7 +187,6 @@
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
-            camera.position.y = 10; 
 
             const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
             light.position.set(0, 200, 0);
@@ -210,7 +215,6 @@
 
             controls = new THREE.PointerLockControls(camera, document.body);
             
-            // Click anywhere on the screen to lock the mouse and play
             document.addEventListener('click', function () {
                 if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
                     controls.lock();
@@ -225,6 +229,11 @@
                     case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
                     case 'ArrowDown': case 'KeyS': moveBackward = true; break;
                     case 'ArrowRight': case 'KeyD': moveRight = true; break;
+                    case 'Space': 
+                        if (canJump) { velocity.y += jumpForce; canJump = false; } 
+                        break;
+                    case 'ShiftLeft': isSprinting = true; break;
+                    case 'ControlLeft': case 'KeyC': isCrouching = true; break;
                 }
             };
             const onKeyUp = function (event) {
@@ -233,6 +242,8 @@
                     case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
                     case 'ArrowDown': case 'KeyS': moveBackward = false; break;
                     case 'ArrowRight': case 'KeyD': moveRight = false; break;
+                    case 'ShiftLeft': isSprinting = false; break;
+                    case 'ControlLeft': case 'KeyC': isCrouching = false; break;
                 }
             };
 
@@ -255,37 +266,64 @@
             const delta = (time - prevTime) / 1000;
 
             if (controls.isLocked === true) {
-                velocity.x -= velocity.x * 10.0 * delta;
-                velocity.z -= velocity.z * 10.0 * delta;
+                // Ground friction vs Air friction (momentum for sprint jumps)
+                const friction = canJump ? 10.0 : 1.5; 
+                velocity.x -= velocity.x * friction * delta;
+                velocity.z -= velocity.z * friction * delta;
+                
+                // Gravity
+                velocity.y -= gravity * delta;
 
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize(); 
 
-                const speed = 400.0;
-                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+                // Dynamic Speed
+                let speed = 400.0; // Walk
+                if (isCrouching) speed = 150.0;
+                else if (isSprinting) speed = 750.0;
+
+                // Air control is reduced so you rely on momentum
+                const controlMult = canJump ? 1.0 : 0.2; 
+                
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * controlMult * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * controlMult * delta;
 
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
                 
+                // Handle Vertical Movement (Jumping/Falling)
+                playerBaseY += velocity.y * delta;
+                if (playerBaseY < 0) { // Hit the floor
+                    playerBaseY = 0;
+                    velocity.y = 0;
+                    canJump = true;
+                }
+
+                // Smooth Crouching Camera Offset
+                const targetOffset = isCrouching ? 5 : 10;
+                cameraOffset += (targetOffset - cameraOffset) * 12 * delta;
+                controls.getObject().position.y = playerBaseY + cameraOffset;
+
                 // --- VIEWMODEL BOBBING MATH ---
-                // Calculate how fast the player is actually moving
                 const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
                 let targetBobX = 0;
                 let targetBobY = 0;
 
-                if (movementSpeed > 10) {
-                    bobTime += delta * 12; // Controls how fast the gun bobs
-                    targetBobX = Math.sin(bobTime) * 15; // Left/Right sway
-                    targetBobY = Math.abs(Math.cos(bobTime)) * 12; // Up/Down bounce
+                if (movementSpeed > 10 && canJump) {
+                    // Moving Bob (Slower and smoother)
+                    bobTime += delta * 7; 
+                    targetBobX = Math.sin(bobTime) * 10;
+                    targetBobY = Math.abs(Math.cos(bobTime)) * 8;
                 } else {
-                    bobTime = 0; // Reset when standing still
+                    // Idle Breathing Bob
+                    bobTime += delta * 2; 
+                    targetBobX = Math.sin(bobTime) * 2;
+                    targetBobY = Math.sin(bobTime * 2) * 2;
                 }
 
-                // Smoothly interpolate the gun position so it doesn't snap
-                currentBobX += (targetBobX - currentBobX) * 10 * delta;
-                currentBobY += (targetBobY - currentBobY) * 10 * delta;
+                currentBobX += (targetBobX - currentBobX) * 8 * delta;
+                currentBobY += (targetBobY - currentBobY) * 8 * delta;
 
                 viewmodel.style.transform = `translate(${currentBobX}px, ${currentBobY}px)`;
             }
