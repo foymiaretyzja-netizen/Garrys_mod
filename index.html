@@ -232,14 +232,19 @@
             document.getElementById('win-sidebar').innerHTML = '<div class="side-item active">Sandbox</div>';
             document.getElementById('win-right-sidebar').style.display = 'block';
             
+            // Updated map grid to include gm_baseplate
             document.getElementById('win-content').innerHTML = `
                 <div class="map-grid">
                     <div class="map-item selected" onclick="selectMap(this)">
-                        <img src="map1.png" class="map-thumb">
+                        <div class="map-thumb" style="display:flex; align-items:center; justify-content:center; color:#666; font-size:10px; font-weight:bold;">NO IMAGE</div>
+                        <div class="map-name">gm_baseplate</div>
+                    </div>
+                    <div class="map-item" onclick="selectMap(this)">
+                        <img src="map1.png" class="map-thumb" onerror="this.style.display='none'">
                         <div class="map-name">gm_construct</div>
                     </div>
                     <div class="map-item" onclick="selectMap(this)">
-                        <img src="map2.png" class="map-thumb">
+                        <img src="map2.png" class="map-thumb" onerror="this.style.display='none'">
                         <div class="map-name">gm_flatgrass</div>
                     </div>
                 </div>`;
@@ -255,18 +260,18 @@
 
         // --- LOAD MAP FILE LOGIC ---
         function loadMapFile() {
-            // Find the element with the map name inside the currently selected map item
             const selectedMapElement = document.querySelector('.map-item.selected .map-name');
             
             if (selectedMapElement) {
-                // Get the text (e.g., "gm_construct" or "gm_flatgrass")
                 const mapName = selectedMapElement.innerText.trim();
-                
-                // Play the click sound
                 clickSnd.play();
                 
-                // Redirect the browser to the corresponding HTML file
-                window.location.href = mapName + '.html';
+                // If it's the baseplate, load it. Otherwise, trigger the Lua error.
+                if (mapName === 'gm_baseplate') {
+                    window.location.href = mapName + '.html';
+                } else {
+                    alert("Lua error! unable to retrieve data.");
+                }
             }
         }
 
@@ -314,6 +319,7 @@
         window.onload = () => {
             document.getElementById('bg-1').style.backgroundImage = `url('${getImgPath()}')`;
             setInterval(swapBackground, 10000);
+            
             // Minute interval refresh for servers
             setInterval(() => {
                 if (document.getElementById('win-title').innerText === "Server List") {
