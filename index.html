@@ -3,148 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garry's Mod Project</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <title>Garry's Mod Menu</title>
     <style>
+        /* --- FONT & RESET --- */
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden; 
-            font-family: 'Roboto', sans-serif; /* Applied Roboto Regular */
+            overflow: hidden;
             background-color: #000;
+            /* Using Helvetica/Arial Bold to match your screenshot */
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* --- BACKGROUND ZOOM & FADE --- */
+        /* --- BACKGROUND LAYERS --- */
         .bg-layer {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover;
             background-position: center;
             opacity: 0;
-            z-index: -1;
+            z-index: 1;
             transition: opacity 2s ease-in-out;
         }
 
         .bg-layer.active {
             opacity: 1;
-            animation: zoomIn 10s linear forwards;
+            animation: gmodZoom 10s linear forwards;
         }
 
-        @keyframes zoomIn {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.1); }
+        @keyframes gmodZoom {
+            from { transform: scale(1); }
+            to { transform: scale(1.08); }
         }
 
-        /* --- UI ELEMENTS --- */
-        .logo {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            width: 180px; /* Made even smaller as requested */
+        /* --- UI OVERLAY --- */
+        #ui-wrapper {
+            position: relative;
             z-index: 10;
+            padding: 40px 50px;
+        }
+
+        .logo {
+            width: 160px; /* Smaller as requested */
+            margin-bottom: 20px;
+            display: block;
         }
 
         .menu-container {
-            position: absolute;
-            top: 130px; /* Positioned directly under the smaller logo */
-            left: 35px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            z-index: 10;
+            gap: 0px; /* Tight spacing like Gmod */
         }
 
         .menu-item {
-            color: white;
-            font-size: 18px; /* Slightly smaller text */
-            font-weight: 400; /* Regular weight */
+            color: #FFFFFF;
+            font-size: 28px;
+            font-weight: 700; /* Bold */
             text-decoration: none;
             cursor: pointer;
-            text-transform: uppercase; /* Optional: gives it that classic menu feel */
-            letter-spacing: 0.5px;
-            text-shadow: 2px 2px 0px #000000; /* Pure black undershadow */
-            transition: color 0.1s ease-in-out;
+            letter-spacing: -1px; /* Tighter letters like your screenshot */
+            line-height: 1.2;
+            /* Pure black undershadow */
+            text-shadow: 2px 2px 0px #000000;
+            user-select: none;
+            transition: color 0.05s;
         }
 
+        /* Spacing groups like the screenshot */
+        .group-space { margin-top: 25px; }
+
         .menu-item:hover, .menu-item:active {
-            color: #ffff00; /* Yellow highlight */
+            color: #FFFF00; /* Yellow highlight */
         }
     </style>
 </head>
 <body>
 
-    <div id="bg-layer-1" class="bg-layer active"></div>
-    <div id="bg-layer-2" class="bg-layer"></div>
+    <div id="bg-1" class="bg-layer active"></div>
+    <div id="bg-2" class="bg-layer"></div>
 
-    <img src="GmodLOGO.png" alt="Logo" class="logo">
-
-    <div class="menu-container">
-        <a class="menu-item">Start New Game</a>
-        <a class="menu-item">Find Multiplayer Game</a>
-        <a class="menu-item">Addons</a>
-        <a class="menu-item) ">Settings</a>
-        <a class="menu-item">Quit</a>
+    <div id="ui-wrapper">
+        <img src="GmodLOGO.png" alt="" class="logo">
+        
+        <div class="menu-container">
+            <a class="menu-item">Start New Game</a>
+            <a class="menu-item">Find Multiplayer Game</a>
+            
+            <div class="group-space"></div>
+            
+            <a class="menu-item">Addons</a>
+            <a class="menu-item">Dupes</a>
+            <a class="menu-item">Saves</a>
+            <a class="menu-item">Demos</a>
+            
+            <div class="group-space"></div>
+            
+            <a class="menu-item">Options</a>
+            
+            <div class="group-space"></div>
+            
+            <a class="menu-item">Quit</a>
+        </div>
     </div>
 
     <script>
-        // --- AUDIO CONFIG ---
-        const hoverSound = new Audio('ui_hover.wav');
-        const clickSound = new Audio('ui_click.wav');
-
-        document.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('mouseenter', () => {
-                hoverSound.currentTime = 0;
-                hoverSound.play().catch(() => {}); 
-            });
-            item.addEventListener('click', () => {
-                clickSound.currentTime = 0;
-                clickSound.play().catch(() => {});
-            });
-        });
-
-        // --- DYNAMIC FILENAME HANDLER ---
-        // This map tells the code which files are .png so it doesn't break
-        const pngFiles = [10, 12, 13, 15, 2, 20, 21, 22, 23, 26, 30, 31, 33, 36, 45, 46, 47, 49, 50, 52];
+        // --- DATA SETUP ---
+        const pngFiles = [2, 10, 12, 13, 15, 20, 21, 22, 23, 26, 30, 31, 33, 36, 45, 46, 47, 49, 50, 52];
         
-        function getFileName(num) {
+        // Audio
+        const hoverSnd = new Audio('ui_hover.wav');
+        const clickSnd = new Audio('ui_click.wav');
+
+        // --- BACKGROUND LOGIC ---
+        let currentIdx = 1;
+        
+        function getImgPath() {
+            // Random number between 2 and 52 (adjust if you have 1.jpg)
+            const num = Math.floor(Math.random() * 51) + 2;
             const ext = pngFiles.includes(num) ? 'png' : 'jpg';
             return `${num}.${ext}`;
         }
 
-        let currentLayer = 1;
-        let usedNumbers = [];
-
-        function changeBackground() {
-            const nextLayerNum = currentLayer === 1 ? 2 : 1;
-            const nextLayer = document.getElementById('bg-layer-' + nextLayerNum);
-            const currentLayerEl = document.getElementById('bg-layer-' + currentLayer);
-
-            // Pick a random number 2-52 (since you listed 2 as the lowest and 52 as highest)
-            // or 1-52 if 1.jpg exists. I'll use a range based on your list.
-            let randomNum;
-            do {
-                randomNum = Math.floor(Math.random() * 52) + 1;
-            } while (randomNum === 8 || randomNum === 9); // Skipping 8 and 9 if they aren't in your list
-
-            const fileName = getFileName(randomNum);
+        function swapBackground() {
+            const nextIdx = currentIdx === 1 ? 2 : 1;
+            const currentEl = document.getElementById(`bg-${currentIdx}`);
+            const nextEl = document.getElementById(`bg-${nextIdx}`);
             
-            nextLayer.style.backgroundImage = `url('${fileName}')`;
-            nextLayer.style.animation = 'none';
-            nextLayer.offsetHeight; 
-            nextLayer.style.animation = null;
+            const newImg = getImgPath();
+            console.log("Loading Background:", newImg); // Check your browser console (F12) to see if it's finding the file
 
-            nextLayer.classList.add('active');
-            currentLayerEl.classList.remove('active');
+            nextEl.style.backgroundImage = `url('${newImg}')`;
+            
+            // Reset Animation
+            nextEl.style.animation = 'none';
+            nextEl.offsetHeight; 
+            nextEl.style.animation = null;
 
-            currentLayer = nextLayerNum;
+            // Fade
+            nextEl.classList.add('active');
+            currentEl.classList.remove('active');
+            
+            currentIdx = nextIdx;
         }
 
-        // Initialize first background
-        document.getElementById('bg-layer-1').style.backgroundImage = `url('${getFileName(Math.floor(Math.random() * 50) + 2)}')`;
+        // Click/Hover Logic
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.onmouseenter = () => { hoverSnd.currentTime = 0; hoverSnd.play().catch(()=>{}); };
+            item.onclick = () => { clickSnd.currentTime = 0; clickSnd.play().catch(()=>{}); };
+        });
 
-        // Cycle every 10 seconds
-        setInterval(changeBackground, 10000);
+        // Initialize and Start Loop
+        window.onload = () => {
+            document.getElementById('bg-1').style.backgroundImage = `url('${getImgPath()}')`;
+            setInterval(swapBackground, 10000);
+        };
     </script>
 </body>
 </html>
