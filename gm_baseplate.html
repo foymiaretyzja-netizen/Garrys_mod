@@ -15,10 +15,10 @@
 
         #game-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* --- CLICK TO PLAY OVERLAY (Hidden during loading) --- */
+        /* --- CLICK TO PLAY OVERLAY --- */
         #blocker {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.5); display: none; /* Hidden at first */
+            background-color: rgba(0,0,0,0.5); display: none; 
             flex-direction: column; justify-content: center; align-items: center;
             color: white; z-index: 10;
         }
@@ -32,14 +32,13 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #dce4eb 0%, #a4b2c1 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 9999; /* Keeps it on top of everything */
-            transition: opacity 0.5s ease;
+            z-index: 9999; 
+            /* Removed the transition so it snaps off instantly */
         }
 
         .center-stage { display: flex; flex-direction: column; align-items: center; transform: translateY(-20px); }
         .gmod-logo { max-width: 250px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
 
-        /* Spinning Notepad */
         .notepad-spinner {
             width: 32px; height: 32px; background-color: #ffda47;
             border: 1px solid #c9a826; border-radius: 2px; position: relative;
@@ -47,24 +46,45 @@
             animation: flipNotepad 1.8s infinite linear;
         }
         .eye { position: absolute; width: 5px; height: 5px; background: #333; border-radius: 50%; top: 8px; }
-        .eye.left { left: 6px; }
-        .eye.right { right: 6px; }
+        .eye.left { left: 6px; } .eye.right { right: 6px; }
         .mouth { position: absolute; width: 14px; height: 3px; background: #333; bottom: 8px; left: 8px; border-radius: 0 0 10px 10px; }
         @keyframes flipNotepad { 0% { transform: perspective(400px) rotateY(0deg); } 100% { transform: perspective(400px) rotateY(360deg); } }
 
-        /* Loading Bar */
         .loading-hud { position: absolute; bottom: 40px; right: 50px; display: flex; flex-direction: column; align-items: flex-end; }
         .status-text { color: #333; font-size: 13px; font-weight: bold; margin-bottom: 6px; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
         .bar-container { display: flex; gap: 2px; padding: 2px; background-color: #666; width: 280px; height: 16px; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); }
         .bar-block { flex: 1; background-color: transparent; }
         .bar-block.filled { background-color: #f2f2f2; }
+
+        /* --- GMOD HINTS SYSTEM --- */
+        #hint-container {
+            position: absolute; right: 20px; top: 40%;
+            display: flex; flex-direction: column; gap: 4px; z-index: 50;
+            pointer-events: none; /* Lets you click through them */
+        }
+        .gmod-hint {
+            background: rgba(0, 0, 0, 0.65);
+            color: white; font-size: 14px; font-weight: bold;
+            padding: 6px 15px 6px 10px; display: flex; align-items: center; gap: 12px;
+            text-shadow: 1px 1px 0px black; border-radius: 2px;
+            opacity: 0; transform: translateX(20px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .gmod-hint.show { opacity: 1; transform: translateX(0); }
+        
+        /* The classic green question mark */
+        .hint-icon {
+            color: #00ff00; font-size: 26px; font-weight: 900;
+            text-shadow: 1px 1px 0px #004400, -1px -1px 0px #004400, 1px -1px 0px #004400, -1px 1px 0px #004400, 2px 2px 2px rgba(0,0,0,0.8);
+            line-height: 1; margin-top: -2px;
+        }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay">
         <div class="center-stage">
-            <img src="Garry's_Mod_logo.svg.png" class="gmod-logo" alt="Gmod Logo" onerror="this.alt='Logo Missing'; this.style.color='#000';">
+            <img src="Garry's_Mod_logo.svg.png" class="gmod-logo">
             <div class="notepad-spinner">
                 <div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>
             </div>
@@ -72,6 +92,17 @@
         <div class="loading-hud">
             <div class="status-text" id="status-text">Beginning Lua...</div>
             <div class="bar-container" id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div id="hint-container">
+        <div class="gmod-hint" id="hint-1">
+            <span class="hint-icon">?</span>
+            <span>Hold 'q' to open the SPAWN MENU</span>
+        </div>
+        <div class="gmod-hint" id="hint-2">
+            <span class="hint-icon">?</span>
+            <span>You can turn off hints in the CONTEXT MENU</span>
         </div>
     </div>
 
@@ -90,10 +121,12 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 
     <script>
-        // --- LOADING SCREEN LOGIC ---
+        // --- AUDIO PRELOAD ---
+        const hintSound = new Audio('balloon_pop_cute.wav');
+
+        // --- LOADING & FAKE LAG LOGIC ---
         const totalBlocks = 20;
         const progressBar = document.getElementById('progress-bar');
-        
         for (let i = 0; i < totalBlocks; i++) {
             const block = document.createElement('div');
             block.className = 'bar-block';
@@ -102,31 +135,46 @@
 
         const blocks = document.querySelectorAll('.bar-block');
         const statusText = document.getElementById('status-text');
-        const totalTimeMs = 10000; // 10 seconds
-        const intervalMs = totalTimeMs / totalBlocks; // 500ms per block
         let currentBlock = 0;
+        let engineFrozen = false; // Controls our fake lag spike
 
         const loadingInterval = setInterval(() => {
             if (currentBlock < totalBlocks) {
                 blocks[currentBlock].classList.add('filled');
                 currentBlock++;
-
                 const progress = currentBlock / totalBlocks;
-                if (progress > 0.3 && progress < 0.8) {
-                    statusText.innerText = "Loading Lua...";
-                } else if (progress >= 0.8) {
-                    statusText.innerText = "Lua started...";
-                }
+                if (progress > 0.3 && progress < 0.8) statusText.innerText = "Loading Lua...";
+                else if (progress >= 0.8) statusText.innerText = "Lua started...";
             } else {
                 clearInterval(loadingInterval);
-                // Hide loading screen, show the "Click to spawn" blocker
-                document.getElementById('loading-overlay').style.opacity = '0';
+                
+                // 1. INSTANTLY hide loading screen
+                document.getElementById('loading-overlay').style.display = 'none';
+                
+                // 2. TRIGGER THE LAG SPIKE
+                engineFrozen = true; 
+                
                 setTimeout(() => {
-                    document.getElementById('loading-overlay').style.display = 'none';
+                    // Unfreeze the engine after 1 second
+                    engineFrozen = false;
                     document.getElementById('blocker').style.display = 'flex';
-                }, 500); // Wait for the fade out
+
+                    // 3. START HINT TIMERS
+                    setTimeout(() => {
+                        document.getElementById('hint-1').classList.add('show');
+                        hintSound.play().catch(e => console.log("Audio blocked by browser until user interaction"));
+                        
+                        setTimeout(() => {
+                            document.getElementById('hint-2').classList.add('show');
+                            hintSound.currentTime = 0; // Reset audio to play again immediately
+                            hintSound.play().catch(e => console.log("Audio blocked"));
+                        }, 2000); // 2 seconds after the first hint
+                        
+                    }, 5000); // 5 seconds after unfreezing
+                    
+                }, 1000); // 1-second engine freeze
             }
-        }, intervalMs);
+        }, 10000 / totalBlocks);
 
         // --- 3D ENGINE LOGIC ---
         let camera, scene, renderer, controls;
@@ -207,6 +255,10 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            
+            // FAKE LAG: If the engine is "frozen", we completely skip rendering and moving for this frame
+            if (engineFrozen) return; 
+
             if (controls.isLocked === true) {
                 const time = performance.now();
                 const delta = (time - prevTime) / 1000;
@@ -225,6 +277,9 @@
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
                 prevTime = time;
+            } else {
+                // Keep time updating even if paused so we don't shoot forward when unpausing
+                prevTime = performance.now(); 
             }
             renderer.render(scene, camera);
         }
