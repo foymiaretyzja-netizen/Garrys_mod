@@ -58,6 +58,7 @@
             transform-origin: bottom right;
             display: none; 
             animation: pulseGlow 4s infinite ease-in-out;
+            /* Will be transformed dynamically by JS */
         }
 
         /* --- GMOD HINTS SYSTEM --- */
@@ -147,14 +148,14 @@
                         const hint1 = document.getElementById('hint-1');
                         hint1.classList.add('show');
                         hintSound.play().catch(e => {});
-                        setTimeout(() => hint1.classList.remove('show'), 10000); // Fade out after 10s
+                        setTimeout(() => hint1.classList.remove('show'), 10000); 
                         
                         setTimeout(() => {
                             const hint2 = document.getElementById('hint-2');
                             hint2.classList.add('show');
                             hintSound.currentTime = 0; 
                             hintSound.play().catch(e => {});
-                            setTimeout(() => hint2.classList.remove('show'), 10000); // Fade out after 10s
+                            setTimeout(() => hint2.classList.remove('show'), 10000); 
                         }, 2000); 
                     }, 5000); 
                 }, 1000); 
@@ -172,14 +173,19 @@
 
         // Physics variables
         let playerBaseY = 0; 
-        let cameraOffset = 10; // Normal height
+        let cameraOffset = 10; 
         const gravity = 40.0;
         const jumpForce = 20.0;
 
-        // Viewmodel Variables
+        // Viewmodel Physics Variables
         const viewmodel = document.getElementById('viewmodel');
         let bobTime = 0;
         let currentBobX = 0, currentBobY = 0;
+        
+        // Sway & Drag variables
+        let targetSwayX = 0, targetSwayY = 0;
+        let currentSwayX = 0, currentSwayY = 0;
+        let landDip = 0; // The downward drop when landing
 
         init();
         animate();
@@ -218,6 +224,19 @@
             document.addEventListener('click', function () {
                 if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
                     controls.lock();
+                }
+            });
+
+            // TRACK MOUSE MOVEMENT FOR WEAPON SWAY
+            document.addEventListener('mousemove', function(event) {
+                if (controls.isLocked) {
+                    // Accumulate raw mouse movement into the target sway
+                    targetSwayX -= event.movementX * 0.4; // Reverse X so gun drags behind
+                    targetSwayY += event.movementY * 0.4; 
+                    
+                    // Clamp it so it doesn't fly off screen
+                    targetSwayX = Math.max(-60, Math.min(60, targetSwayX));
+                    targetSwayY = Math.max(-40, Math.min(60, targetSwayY));
                 }
             });
 
@@ -266,24 +285,20 @@
             const delta = (time - prevTime) / 1000;
 
             if (controls.isLocked === true) {
-                // Ground friction vs Air friction (momentum for sprint jumps)
                 const friction = canJump ? 10.0 : 1.5; 
                 velocity.x -= velocity.x * friction * delta;
                 velocity.z -= velocity.z * friction * delta;
                 
-                // Gravity
                 velocity.y -= gravity * delta;
 
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize(); 
 
-                // Dynamic Speed
-                let speed = 400.0; // Walk
+                let speed = 400.0; 
                 if (isCrouching) speed = 150.0;
                 else if (isSprinting) speed = 750.0;
 
-                // Air control is reduced so you rely on momentum
                 const controlMult = canJump ? 1.0 : 0.2; 
                 
                 if (moveForward || moveBackward) velocity.z -= direction.z * speed * controlMult * delta;
@@ -292,31 +307,38 @@
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
                 
-                // Handle Vertical Movement (Jumping/Falling)
+                // --- JUMP LANDING PHYSICS ---
+                const wasInAir = !canJump;
                 playerBaseY += velocity.y * delta;
-                if (playerBaseY < 0) { // Hit the floor
+                
+                if (playerBaseY < 0) { 
                     playerBaseY = 0;
+                    
+                    // If we were falling fast, trigger a landing dip on the gun
+                    if (wasInAir && velocity.y < -15) {
+                        landDip = Math.min(80, Math.abs(velocity.y) * 1.5); // Gun drops down
+                    }
+                    
                     velocity.y = 0;
                     canJump = true;
                 }
 
-                // Smooth Crouching Camera Offset
                 const targetOffset = isCrouching ? 5 : 10;
                 cameraOffset += (targetOffset - cameraOffset) * 12 * delta;
                 controls.getObject().position.y = playerBaseY + cameraOffset;
 
-                // --- VIEWMODEL BOBBING MATH ---
+                // --- VIEWMODEL PHYSICS MASTER LOOP ---
+                
+                // 1. Base Bobbing (Faster if sprinting)
                 const movementSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-                let targetBobX = 0;
-                let targetBobY = 0;
+                let targetBobX = 0, targetBobY = 0;
 
                 if (movementSpeed > 10 && canJump) {
-                    // Moving Bob (Slower and smoother)
-                    bobTime += delta * 7; 
-                    targetBobX = Math.sin(bobTime) * 10;
-                    targetBobY = Math.abs(Math.cos(bobTime)) * 8;
+                    const bobSpeed = isSprinting ? 14 : 9;
+                    bobTime += delta * bobSpeed; 
+                    targetBobX = Math.sin(bobTime) * (isSprinting ? 15 : 10);
+                    targetBobY = Math.abs(Math.cos(bobTime)) * (isSprinting ? 12 : 8);
                 } else {
-                    // Idle Breathing Bob
                     bobTime += delta * 2; 
                     targetBobX = Math.sin(bobTime) * 2;
                     targetBobY = Math.sin(bobTime * 2) * 2;
@@ -325,7 +347,28 @@
                 currentBobX += (targetBobX - currentBobX) * 8 * delta;
                 currentBobY += (targetBobY - currentBobY) * 8 * delta;
 
-                viewmodel.style.transform = `translate(${currentBobX}px, ${currentBobY}px)`;
+                // 2. Mouse Sway (Drags behind cursor)
+                // Decay the target sway back to center (0,0) like a spring
+                targetSwayX += (0 - targetSwayX) * 8 * delta;
+                targetSwayY += (0 - targetSwayY) * 8 * delta;
+                
+                // Interpolate the actual sway smoothly towards the target
+                currentSwayX += (targetSwayX - currentSwayX) * 15 * delta;
+                currentSwayY += (targetSwayY - currentSwayY) * 15 * delta;
+
+                // 3. Movement Drag (Pushes gun based on WASD velocity)
+                const moveDragZ = (velocity.z * 0.05); 
+                const moveDragX = (velocity.x * 0.05);
+
+                // 4. Landing Dip (Spring back to 0)
+                landDip += (0 - landDip) * 10 * delta; 
+
+                // --- COMPILE ALL FORCES ---
+                const finalX = currentBobX + currentSwayX + moveDragX;
+                const finalY = currentBobY + currentSwayY + landDip;
+                const finalRotation = currentSwayX * 0.15; // Subtle tilt when turning
+
+                viewmodel.style.transform = `translate(${finalX}px, ${finalY}px) rotate(${finalRotation}deg)`;
             }
 
             prevTime = time;
