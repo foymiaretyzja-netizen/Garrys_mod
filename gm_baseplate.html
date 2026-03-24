@@ -13,7 +13,14 @@
             user-select: none;
         }
 
-        #game-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; cursor: crosshair; }
+        #game-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; cursor: none; }
+
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 4px; height: 4px; background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0,0,0,0.5); border-radius: 50%;
+            z-index: 10; pointer-events: none; display: none;
+        }
 
         /* --- LOADING SCREEN OVERLAY --- */
         #loading-overlay {
@@ -119,7 +126,7 @@
             position: fixed; top: 10%; left: 10%; width: 80%; height: 80%;
             background: rgba(180, 180, 180, 0.95); border: 2px solid #555;
             box-shadow: 0px 10px 30px rgba(0,0,0,0.5); z-index: 900; display: none;
-            flex-direction: column; padding: 20px; box-sizing: border-box;
+            flex-direction: column; padding: 20px; box-sizing: border-box; cursor: default;
         }
         .spawn-header { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 20px; border-bottom: 2px solid #999; padding-bottom: 5px; }
         .spawn-category { font-size: 18px; font-weight: bold; color: #555; margin-top: 15px; margin-bottom: 10px; }
@@ -137,7 +144,7 @@
         /* --- PAUSE MENU --- */
         #pause-menu {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 1000; display: none; background: rgba(0,0,0,0.2); backdrop-filter: blur(2px);
+            z-index: 1000; display: none; background: rgba(0,0,0,0.2); backdrop-filter: blur(2px); cursor: default;
         }
         .sidebar {
             position: absolute; top: 0; left: 0; width: 350px; height: 100%;
@@ -157,7 +164,7 @@
         #disconnect-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 99999; display: none; }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;"> <div id="crosshair"></div>
 
     <div id="loading-overlay">
         <div class="center-stage">
@@ -174,14 +181,12 @@
 
     <div id="spawn-menu">
         <div class="spawn-header">Spawnlists</div>
-        
         <div class="spawn-category">Basic Props</div>
         <div class="spawn-grid">
             <button class="spawn-btn" onclick="spawnEntity('Square')">Square</button>
             <button class="spawn-btn" onclick="spawnEntity('Ball')">Ball</button>
             <button class="spawn-btn" onclick="spawnEntity('Triangle')">Triangle</button>
         </div>
-
         <div class="spawn-category">Entities / NPCs</div>
         <div class="spawn-grid">
             <button class="spawn-btn npc" onclick="spawnEntity('Nextbot')">Nextbot</button>
@@ -214,7 +219,7 @@
 
     <div id="hint-container">
         <div class="gmod-hint" id="hint-1"><span class="hint-icon">?</span><span>Hold 'Q' to open the SPAWN MENU</span></div>
-        <div class="gmod-hint" id="hint-2"><span class="hint-icon">?</span><span>Press 'Z' to Undo / Remove Objects</span></div>
+        <div class="gmod-hint" id="hint-2"><span class="hint-icon">?</span><span>Left Click to Grab. Right Click to Throw. 'R' to Freeze.</span></div>
     </div>
 
     <div id="game-canvas"></div>
@@ -223,7 +228,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 
     <script>
-        const hintSound = new Audio('balloon_pop_cute.wav'); // Replace if needed
+        const hintSound = new Audio('balloon_pop_cute.wav'); 
         let engineFrozen = false; 
         let isPaused = false;
         let isSpawnMenuOpen = false;
@@ -231,6 +236,7 @@
         // --- HEALTH & DEATH SYSTEM ---
         let playerHealth = 100;
         let isDead = false;
+        let deadCameraVelocity = new THREE.Vector3(); // For nextbot throwing you
         const healthDisplay = document.getElementById('health-display');
         const damageFlash = document.getElementById('damage-flash');
         const deathOverlay = document.getElementById('death-overlay');
@@ -248,15 +254,29 @@
             if (playerHealth <= 0) triggerDeath();
         }
 
-        function triggerDeath() {
+        function triggerDeath(killerImpulse = null) {
+            if (isDead) return;
             isDead = true;
             viewmodelImg.style.display = 'none';
+            document.getElementById('crosshair').style.display = 'none';
             deathOverlay.style.display = 'block';
+
+            // If killed by Nextbot, throw the camera
+            if (killerImpulse) {
+                deadCameraVelocity.copy(killerImpulse);
+            } else {
+                deadCameraVelocity.set(0,0,0);
+            }
+
+            // Drop held object
+            if (heldObject) heldObject.userData.isHeld = false;
+            heldObject = null;
 
             setTimeout(() => {
                 isDead = false; playerHealth = 100; healthDisplay.innerText = playerHealth;
                 deathOverlay.style.display = 'none'; viewmodelImg.style.display = 'block';
-                controls.getObject().position.set(0, 10, 0); velocity.set(0,0,0);
+                document.getElementById('crosshair').style.display = 'block';
+                controls.getObject().position.set(0, 10, 0); velocity.set(0,0,0); deadCameraVelocity.set(0,0,0);
                 camera.rotation.z = 0; cameraOffset = 10;
             }, 3500);
         }
@@ -298,6 +318,7 @@
                 setTimeout(() => {
                     engineFrozen = false; viewmodelImg.style.display = 'block';
                     document.getElementById('health-hud').style.display = 'flex'; 
+                    document.getElementById('crosshair').style.display = 'block';
 
                     setTimeout(() => {
                         const hint1 = document.getElementById('hint-1'); hint1.classList.add('show');
@@ -313,7 +334,7 @@
             }
         }, 10000 / totalBlocks);
 
-        // --- 3D ENGINE, MOVEMENT, & SPAWNING ---
+        // --- 3D ENGINE, MOVEMENT, & PHYSICS VARIABLES ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let isSprinting = false, isCrouching = false, canJump = false, jumpPressed = false;
@@ -329,16 +350,23 @@
         let bobTime = 0; let currentBobX = 0, currentBobY = 0;
         let targetSwayX = 0, targetSwayY = 0; let currentSwayX = 0, currentSwayY = 0; let landDip = 0; 
 
-        // Spawning System Variables
+        // Spawning & Physgun Variables
         const spawnedObjects = [];
         const notiContainer = document.getElementById('notification-container');
+        
+        const raycaster = new THREE.Raycaster();
+        const screenCenter = new THREE.Vector2(0, 0);
+        
+        let heldObject = null;
+        let holdDistance = 0;
+        let physgunBeamMesh = null;
 
         init();
         animate();
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 
             const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1); light.position.set(0, 200, 0); scene.add(light);
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(0, 200, 100); scene.add(dirLight);
@@ -351,6 +379,13 @@
             const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, roughness: 0.8 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial); scene.add(floor);
 
+            // Setup Physgun Beam (Line)
+            const beamMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.8 });
+            const beamGeometry = new THREE.BufferGeometry().setFromPoints(new Array(20).fill(new THREE.Vector3()));
+            physgunBeamMesh = new THREE.Line(beamGeometry, beamMaterial);
+            physgunBeamMesh.visible = false;
+            scene.add(physgunBeamMesh);
+
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); 
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
@@ -361,25 +396,63 @@
             controls.addEventListener('unlock', function () {
                 if (!engineFrozen && document.getElementById('loading-overlay').style.display === 'none') {
                     if (isSpawnMenuOpen) {
-                        spawnMenu.style.display = 'flex';
+                        spawnMenu.style.display = 'flex'; document.getElementById('crosshair').style.display = 'none';
                     } else {
-                        pauseMenu.style.display = 'block';
-                        isPaused = true;
+                        pauseMenu.style.display = 'block'; isPaused = true; document.getElementById('crosshair').style.display = 'none';
                     }
+                    if (heldObject) heldObject.userData.isHeld = false; heldObject = null;
                 }
             });
 
             controls.addEventListener('lock', function () {
-                pauseMenu.style.display = 'none';
-                spawnMenu.style.display = 'none';
-                isPaused = false;
-                isSpawnMenuOpen = false;
+                pauseMenu.style.display = 'none'; spawnMenu.style.display = 'none';
+                isPaused = false; isSpawnMenuOpen = false;
+                if (!isDead) document.getElementById('crosshair').style.display = 'block';
             });
 
-            document.addEventListener('click', function (e) {
-                // If they click on the canvas and menus are hidden, lock pointer
-                if (!isPaused && !isSpawnMenuOpen && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none' && !isDead) {
-                    controls.lock();
+            // --- MOUSE CONTROLS (PHYSGUN) ---
+            document.addEventListener('mousedown', function (e) {
+                if (!controls.isLocked) {
+                    if (!isPaused && !isSpawnMenuOpen && !engineFrozen && document.getElementById('loading-overlay').style.display === 'none' && !isDead) {
+                        controls.lock();
+                    }
+                    return;
+                }
+
+                if (isDead) return;
+
+                // LEFT CLICK - Grab
+                if (e.button === 0 && !heldObject) {
+                    raycaster.setFromCamera(screenCenter, camera);
+                    const intersects = raycaster.intersectObjects(spawnedObjects);
+                    
+                    if (intersects.length > 0) {
+                        const hit = intersects[0].object;
+                        if (!hit.isNextbot) { // Don't grab nextbots
+                            heldObject = hit;
+                            holdDistance = intersects[0].distance;
+                            heldObject.userData.isHeld = true;
+                            heldObject.userData.frozen = false; 
+                        }
+                    }
+                }
+
+                // RIGHT CLICK - Throw
+                if (e.button === 2 && heldObject) {
+                    const throwForce = 80;
+                    const camDir = new THREE.Vector3();
+                    camera.getWorldDirection(camDir);
+                    heldObject.userData.velocity.copy(camDir.multiplyScalar(throwForce));
+                    heldObject.userData.isHeld = false;
+                    heldObject = null;
+                }
+            });
+
+            document.addEventListener('mouseup', function (e) {
+                // LEFT CLICK RELEASE - Drop
+                if (e.button === 0 && heldObject) {
+                    heldObject.userData.isHeld = false;
+                    heldObject = null;
                 }
             });
 
@@ -395,19 +468,19 @@
             const onKeyDown = function (event) {
                 if (isDead) return;
 
-                // Toggle Spawn Menu
                 if (event.code === 'KeyQ' && !isPaused) {
-                    if (isSpawnMenuOpen) {
-                        controls.lock(); // Re-lock screen, closes menu automatically via event
-                    } else if (controls.isLocked) {
-                        isSpawnMenuOpen = true;
-                        controls.unlock(); // Unlocks screen, opens menu automatically via event
-                    }
+                    if (isSpawnMenuOpen) controls.lock(); 
+                    else if (controls.isLocked) { isSpawnMenuOpen = true; controls.unlock(); }
                 }
 
-                // Undo Object
-                if (event.code === 'KeyZ' && controls.isLocked) {
-                    undoLastSpawn();
+                if (event.code === 'KeyZ' && controls.isLocked) undoLastSpawn();
+
+                // FREEZE OBJECT
+                if (event.code === 'KeyR' && controls.isLocked && heldObject) {
+                    heldObject.userData.frozen = true;
+                    heldObject.userData.velocity.set(0,0,0);
+                    heldObject.userData.isHeld = false;
+                    heldObject = null;
                 }
 
                 if (isPaused || isSpawnMenuOpen) return;
@@ -439,17 +512,16 @@
             window.addEventListener('resize', onWindowResize);
         }
 
-        // --- SPAWNING LOGIC ---
         window.spawnEntity = function(type) {
             let geometry, material, mesh;
 
             switch(type) {
                 case 'Square':
-                    geometry = new THREE.BoxGeometry(5, 5, 5);
+                    geometry = new THREE.BoxGeometry(4, 4, 4);
                     material = new THREE.MeshStandardMaterial({ color: 0x4287f5 });
                     break;
                 case 'Ball':
-                    geometry = new THREE.SphereGeometry(3, 32, 32);
+                    geometry = new THREE.SphereGeometry(2.5, 32, 32);
                     material = new THREE.MeshStandardMaterial({ color: 0xf54242 });
                     break;
                 case 'Triangle':
@@ -464,16 +536,21 @@
 
             mesh = new THREE.Mesh(geometry, material);
             mesh.name = type;
+            // Physics Properties Setup
+            mesh.userData = {
+                velocity: new THREE.Vector3(0,0,0),
+                frozen: false,
+                isHeld: false,
+                radius: type === 'Nextbot' ? 6 : 2 // basic collision size
+            };
+
             if (type === 'Nextbot') mesh.isNextbot = true;
 
-            // Spawn directly in front of camera
-            const spawnDist = 20;
-            const camDir = new THREE.Vector3();
-            camera.getWorldDirection(camDir);
+            const spawnDist = 15;
+            const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
             mesh.position.copy(controls.getObject().position).add(camDir.multiplyScalar(spawnDist));
             
-            // Adjust height so it doesn't clip into floor
-            if (mesh.position.y < 3) mesh.position.y = 3;
+            if (mesh.position.y < mesh.userData.radius) mesh.position.y = mesh.userData.radius + 5;
 
             scene.add(mesh);
             spawnedObjects.push(mesh);
@@ -482,9 +559,9 @@
         window.undoLastSpawn = function() {
             if (spawnedObjects.length > 0) {
                 const obj = spawnedObjects.pop();
+                if (heldObject === obj) heldObject = null;
                 scene.remove(obj);
                 
-                // Show UI Notification
                 const noti = document.createElement('div');
                 noti.className = 'noti-box';
                 noti.innerHTML = `<span class="noti-arrow">↩</span> Deleted ${obj.name}.`;
@@ -504,33 +581,122 @@
             if (engineFrozen) return; 
 
             const time = performance.now();
-            const delta = (time - prevTime) / 1000;
+            const delta = Math.min((time - prevTime) / 1000, 0.1); // Cap delta to prevent huge jumps
 
-            // --- NEXTBOT AI LOGIC ---
             const playerPos = controls.getObject().position;
+
+            // --- PROPS & NEXTBOT PHYSICS LOOP ---
             spawnedObjects.forEach(obj => {
                 if (obj.isNextbot) {
-                    // Billboard effect (always face player camera)
-                    obj.quaternion.copy(camera.quaternion);
+                    obj.quaternion.copy(camera.quaternion); // Always face camera
                     
-                    // Chase logic (700 speed = roughly sprint speed)
                     if (!isDead) {
-                        const botSpeed = 700 * delta;
-                        const direction = new THREE.Vector3().subVectors(playerPos, obj.position);
-                        direction.y = 0; // Keep it sliding along the ground
-                        direction.normalize();
-                        obj.position.addScaledVector(direction, botSpeed);
+                        // Drift Physics & Acceleration
+                        const botAccel = 600 * delta; 
+                        const dirToPlayer = new THREE.Vector3().subVectors(playerPos, obj.position);
+                        dirToPlayer.y = 0; dirToPlayer.normalize();
+                        
+                        obj.userData.velocity.addScaledVector(dirToPlayer, botAccel);
+                        obj.userData.velocity.multiplyScalar(0.95); // Friction/Drift slide
+                        obj.position.addScaledVector(obj.userData.velocity, delta);
+
+                        // Keep above ground
+                        if (obj.position.y < 6) obj.position.y = 6;
+
+                        // Kill Player Collision
+                        const distToPlayer = obj.position.distanceTo(playerPos);
+                        if (distToPlayer < 8) {
+                            // Calculate violent camera throw impulse
+                            const throwDir = new THREE.Vector3().subVectors(playerPos, obj.position).normalize();
+                            throwDir.y = 1.5; // Throw slightly upwards
+                            triggerDeath(throwDir.multiplyScalar(150));
+                        }
+
+                        // Knock away props
+                        spawnedObjects.forEach(otherObj => {
+                            if (!otherObj.isNextbot && !otherObj.userData.frozen && !otherObj.userData.isHeld) {
+                                if (obj.position.distanceTo(otherObj.position) < 10) {
+                                    const knockDir = new THREE.Vector3().subVectors(otherObj.position, obj.position).normalize();
+                                    otherObj.userData.velocity.add(knockDir.multiplyScalar(50));
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    // Standard Prop Physics
+                    if (obj.userData.isHeld) {
+                        // Spring physics for dragging/inertia
+                        const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
+                        const targetPos = playerPos.clone().add(camDir.multiplyScalar(holdDistance));
+                        
+                        const diff = targetPos.clone().sub(obj.position);
+                        obj.userData.velocity.copy(diff.multiplyScalar(12)); // Stiffness
+                        
+                        obj.position.addScaledVector(obj.userData.velocity, delta);
+
+                        // Stop it from going through the floor while held
+                        if (obj.position.y < obj.userData.radius) obj.position.y = obj.userData.radius;
+                    } else if (!obj.userData.frozen) {
+                        // Gravity & Velocity
+                        obj.userData.velocity.y -= gravity * delta;
+                        obj.position.addScaledVector(obj.userData.velocity, delta);
+
+                        // Floor Collision
+                        if (obj.position.y <= obj.userData.radius) {
+                            obj.position.y = obj.userData.radius;
+                            obj.userData.velocity.y *= -0.4; // Bounce
+                            obj.userData.velocity.x *= 0.8;  // Floor friction
+                            obj.userData.velocity.z *= 0.8;
+                        }
+                        
+                        // Air Friction
+                        obj.userData.velocity.x *= 0.99;
+                        obj.userData.velocity.z *= 0.99;
                     }
                 }
             });
 
+            // --- PHYSGUN BEAM VISUALS ---
+            if (heldObject && !isDead) {
+                physgunBeamMesh.visible = true;
+                
+                // Muzzle position relative to camera (Bottom Right)
+                const muzzleLocal = new THREE.Vector3(1.5, -1.0, -2.5);
+                const muzzleWorld = muzzleLocal.applyMatrix4(camera.matrixWorld);
+
+                // Bezier Curve to create drag/bend effect based on object velocity
+                const endPos = heldObject.position.clone();
+                const controlPoint = muzzleWorld.clone().lerp(endPos, 0.5);
+                
+                // Bend the line inversely to the velocity to show "strain"
+                controlPoint.x -= heldObject.userData.velocity.x * 0.05;
+                controlPoint.y -= heldObject.userData.velocity.y * 0.05;
+                controlPoint.z -= heldObject.userData.velocity.z * 0.05;
+                controlPoint.y -= 1.0; // Natural sag
+
+                const curve = new THREE.QuadraticBezierCurve3(muzzleWorld, controlPoint, endPos);
+                const points = curve.getPoints(19); // 20 points total
+                physgunBeamMesh.geometry.setFromPoints(points);
+            } else {
+                physgunBeamMesh.visible = false;
+            }
+
+            // --- PLAYER MOVEMENT & CAMERA LOOP ---
             if (controls.isLocked === true && !isPaused && !isSpawnMenuOpen) {
                 if (isDead) {
-                    cameraOffset += (2 - cameraOffset) * 5 * delta; 
+                    // Death Camera flying through air
+                    deadCameraVelocity.y -= gravity * delta; // Gravity on camera
+                    controls.getObject().position.addScaledVector(deadCameraVelocity, delta);
+                    
+                    if (controls.getObject().position.y < 2) {
+                        controls.getObject().position.y = 2; // Floor hit
+                        deadCameraVelocity.y *= -0.3; // Bounce camera
+                        deadCameraVelocity.x *= 0.8; // Friction
+                        deadCameraVelocity.z *= 0.8;
+                    }
+
                     camera.rotation.z += (Math.PI / 2.2 - camera.rotation.z) * 4 * delta; 
-                    controls.getObject().position.y = playerBaseY + cameraOffset;
-                    velocity.x -= velocity.x * 5.0 * delta; velocity.z -= velocity.z * 5.0 * delta;
-                    controls.moveRight(-velocity.x * delta); controls.moveForward(-velocity.z * delta);
+                    
                 } else if (isNoclipping) {
                     const noclipSpeed = isSprinting ? 500 : 200;
                     const camDir = new THREE.Vector3(); camera.getWorldDirection(camDir);
