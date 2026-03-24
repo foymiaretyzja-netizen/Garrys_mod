@@ -30,7 +30,7 @@
             z-index: 9999; 
         }
         .center-stage { display: flex; flex-direction: column; align-items: center; transform: translateY(-20px); }
-        .gmod-logo { max-width: 250px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
+        .gmod-logo { max-width: 350px; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.2)); margin-bottom: 25px; }
 
         .notepad-spinner {
             width: 32px; height: 32px; background-color: #ffda47;
@@ -72,8 +72,8 @@
         }
 
         #viewmodel {
-            position: absolute; bottom: -50px; right: -50px; 
-            width: 45%; max-width: 600px; 
+            position: absolute; bottom: -20px; right: -20px; 
+            width: 60%; max-width: 800px; /* Made the gun much bigger */
             z-index: 5; pointer-events: none; 
             transform-origin: bottom right;
             display: none; transition: transform 0.1s;
@@ -127,7 +127,7 @@
 
         #pause-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; display: none; background: rgba(0,0,0,0.2); backdrop-filter: blur(2px); cursor: default; }
         .sidebar { position: absolute; top: 0; left: 0; width: 350px; height: 100%; background: linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0) 100%); padding: 50px; box-sizing: border-box; display: flex; flex-direction: column; }
-        .menu-items { display: flex; flex-direction: column; gap: 6px; margin-top: 50px;}
+        .menu-items { display: flex; flex-direction: column; gap: 6px; margin-top: 20px;}
         .menu-btn { background: none; border: none; color: white; font-family: Tahoma, Arial, sans-serif; font-size: 18px; font-weight: bold; text-align: left; cursor: pointer; padding: 4px 8px; width: fit-content; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); transition: background 0.1s; }
         .menu-btn:hover { background: rgba(255,255,255,0.1); border-radius: 2px; }
     </style>
@@ -138,6 +138,7 @@
 
     <div id="loading-overlay">
         <div class="center-stage">
+            <img src="GmodLOGO.png" class="gmod-logo" alt="Garry's Mod">
             <div class="notepad-spinner"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div>
         </div>
         <div class="loading-hud">
@@ -170,9 +171,10 @@
 
     <div id="pause-menu">
         <div class="sidebar">
-            <h1 style="color:white; margin:0;">gmod</h1>
+            <img src="Garry's_Mod_logo.svg.png" style="width: 250px; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.8));" alt="Gmod Logo">
             <div class="menu-items">
                 <button class="menu-btn" id="btn-resume">Resume Game</button>
+                <button class="menu-btn" id="btn-controls">Controls</button>
                 <div style="height: 15px;"></div>
                 <button class="menu-btn" id="btn-disconnect">Disconnect</button>
             </div>
@@ -262,7 +264,7 @@
 
             if (heldObject) {
                 heldObject.userData.isHeld = false;
-                heldObject.material.emissive.setHex(0x000000); // Remove blue glow
+                heldObject.material.emissive.setHex(0x000000); 
             }
             heldObject = null;
             clearInterval(fireInterval); isFiring = false;
@@ -284,12 +286,16 @@
 
         document.getElementById('btn-resume').addEventListener('click', () => controls.lock());
         document.getElementById('btn-disconnect').addEventListener('click', () => window.location.reload());
+        document.getElementById('btn-controls').addEventListener('click', () => {
+            alert("🕹️ CONTROLS:\n\nW, A, S, D - Move\nSpace - Jump\nShift - Sprint\nC / Ctrl - Crouch\nV - Toggle Noclip\nQ - Open Spawn Menu\n1, 2 - Switch Weapons\nR - Reload (Gun) / Freeze Prop (Physgun)\nZ - Undo Last Spawn\nLeft Click - Fire / Grab\nRight Click - Throw Object");
+        });
 
-        // --- LOADING LOGIC ---
+        // --- LOADING LOGIC (10 SECONDS) ---
         const totalBlocks = 20; const progressBar = document.getElementById('progress-bar');
         for (let i = 0; i < totalBlocks; i++) { const block = document.createElement('div'); block.className = 'bar-block'; progressBar.appendChild(block); }
         const blocks = document.querySelectorAll('.bar-block'); let currentBlock = 0;
 
+        // 10 seconds / 20 blocks = 500ms per block
         const loadingInterval = setInterval(() => {
             if (currentBlock < totalBlocks) {
                 blocks[currentBlock].classList.add('filled'); currentBlock++;
@@ -298,7 +304,7 @@
                 viewmodelImg.style.display = 'block'; document.getElementById('health-hud').style.display = 'flex'; 
                 document.getElementById('crosshair').style.display = 'block';
             }
-        }, 100);
+        }, 500); 
 
         // --- 3D ENGINE, MOVEMENT, & PHYSICS VARIABLES ---
         let camera, scene, renderer, controls;
@@ -333,7 +339,7 @@
             const floorGeometry = new THREE.PlaneGeometry(2000, 2000, 100, 100); floorGeometry.rotateX(-Math.PI / 2);
             const floorMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, roughness: 0.8 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial); scene.add(floor);
-            spawnedObjects.push(floor); // Make floor raycastable for bullets
+            spawnedObjects.push(floor); 
 
             // Setup Physgun Beam
             const beamMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.8 });
@@ -366,7 +372,6 @@
                 if (isDead || isReloading) return;
 
                 if (currentWeapon === 1) {
-                    // PHYSGUN LOGIC
                     if (e.button === 0 && !heldObject) {
                         raycaster.setFromCamera(screenCenter, camera);
                         const intersects = raycaster.intersectObjects(spawnedObjects);
@@ -375,7 +380,7 @@
                             if (!hit.isNextbot && hit !== floor) { 
                                 heldObject = hit; holdDistance = intersects[0].distance;
                                 heldObject.userData.isHeld = true; heldObject.userData.frozen = false; 
-                                heldObject.material.emissive.setHex(0x0044ff); // Blue Highlight
+                                heldObject.material.emissive.setHex(0x0044ff); 
                             }
                         }
                     } else if (e.button === 2 && heldObject) {
@@ -384,10 +389,9 @@
                         dropObject();
                     }
                 } else if (currentWeapon === 2) {
-                    // SMG LOGIC
                     if (e.button === 0 && !isFiring) {
-                        isFiring = true; fireSMG(); // Fire first shot
-                        fireInterval = setInterval(fireSMG, 100); // Rapid fire (10 rounds/sec)
+                        isFiring = true; fireSMG(); 
+                        fireInterval = setInterval(fireSMG, 100); 
                     }
                 }
             });
@@ -411,13 +415,11 @@
             const onKeyDown = function (event) {
                 if (isDead) return;
 
-                // WEAPON SWITCHING (1-5)
                 if (event.key >= '1' && event.key <= '5') switchWeapon(parseInt(event.key));
 
-                // RELOADING
                 if (event.code === 'KeyR' && controls.isLocked) {
                     if (currentWeapon === 2 && ammoClip < 30 && ammoReserve > 0 && !isReloading) reloadSMG();
-                    if (currentWeapon === 1 && heldObject) { // Freeze prop
+                    if (currentWeapon === 1 && heldObject) { 
                         heldObject.userData.frozen = true; heldObject.userData.velocity.set(0,0,0); dropObject();
                     }
                 }
@@ -457,10 +459,9 @@
 
         // --- COMBAT FUNCTIONS ---
         function switchWeapon(slot) {
-            if (isReloading || slot > 2) return; // Only 1 and 2 implemented
+            if (isReloading || slot > 2) return; 
             currentWeapon = slot;
             
-            // UI Visuals
             document.querySelectorAll('.weapon-slot').forEach(el => el.classList.remove('active'));
             document.getElementById(`slot-${slot}`).classList.add('active');
             
@@ -471,7 +472,6 @@
             if (heldObject) dropObject();
             clearInterval(fireInterval); isFiring = false;
 
-            // Swap models & UI
             if (slot === 1) {
                 viewmodelImg.src = 'Newtonvm.webp'; viewmodelImg.className = 'physgun-glow';
                 ammoHud.style.display = 'none';
@@ -495,27 +495,27 @@
                 ammoClip += taken; ammoReserve -= taken;
                 updateAmmoUI();
                 viewmodelImg.classList.remove('reloading');
-                setTimeout(() => { isReloading = false; }, 500); // Wait for animation up
+                setTimeout(() => { isReloading = false; }, 500); 
             }, 4000);
         }
 
         function fireSMG() {
-            if (ammoClip <= 0) { clearInterval(fireInterval); isFiring = false; return; } // Empty
+            if (ammoClip <= 0) { clearInterval(fireInterval); isFiring = false; return; } 
             
             ammoClip--; updateAmmoUI();
             
-            // Visual Recoil & Flash
-            targetSwayY -= 8; // Kick viewmodel up
+            // HEAVY VISUAL RECOIL
+            targetSwayY -= 25; // Massive kick upwards
+            targetSwayX += (Math.random() - 0.5) * 15; // Random horizontal jerk
+
             muzzleFlash.style.opacity = '1'; setTimeout(() => muzzleFlash.style.opacity = '0', 50);
 
-            // Hitscan Raycast
             raycaster.setFromCamera(screenCenter, camera);
             const intersects = raycaster.intersectObjects(spawnedObjects);
             
             if (intersects.length > 0) {
                 const hit = intersects[0];
                 if (hit.object.isNextbot) {
-                    // Damage Nextbot
                     hit.object.userData.hp -= 50;
                     if (hit.object.userData.hp <= 0) {
                         scene.remove(hit.object);
@@ -524,13 +524,11 @@
                         targetHud.style.display = 'none';
                     }
                 } else {
-                    // Spawn Decal
                     const decalGeo = new THREE.PlaneGeometry(1, 1);
                     const decalMat = new THREE.MeshBasicMaterial({ map: bulletHoleTex, transparent: true, depthWrite: false });
                     const decal = new THREE.Mesh(decalGeo, decalMat);
                     
                     decal.position.copy(hit.point);
-                    // Prevent Z-fighting by moving slightly off surface
                     decal.position.addScaledVector(hit.face.normal, 0.02);
                     
                     const lookTarget = hit.point.clone().add(hit.face.normal);
@@ -545,7 +543,7 @@
         function dropObject() {
             if(!heldObject) return;
             heldObject.userData.isHeld = false;
-            heldObject.material.emissive.setHex(0x000000); // Remove glow
+            heldObject.material.emissive.setHex(0x000000); 
             heldObject = null;
         }
 
@@ -572,10 +570,9 @@
         };
 
         window.undoLastSpawn = function() {
-            // Find last object that isn't the floor
             for(let i = spawnedObjects.length - 1; i >= 0; i--) {
                 const obj = spawnedObjects[i];
-                if (obj.geometry.type !== 'PlaneGeometry' || obj.isNextbot) { // Ignore floor
+                if (obj.geometry.type !== 'PlaneGeometry' || obj.isNextbot) { 
                     if (heldObject === obj) dropObject();
                     scene.remove(obj); spawnedObjects.splice(i, 1);
                     notify(`↩ Deleted ${obj.name}`);
@@ -599,14 +596,12 @@
             const delta = Math.min((time - prevTime) / 1000, 0.1); 
             const playerPos = controls.getObject().position;
 
-            // --- DECAL LIFETIME MANAGER ---
             for(let i = decals.length - 1; i >= 0; i--) {
                 const age = (time - decals[i].userData.createdAt) / 1000;
-                if (age > 20) { scene.remove(decals[i]); decals.splice(i, 1); } // Delete
-                else if (age > 15) { decals[i].material.opacity = 1 - ((age - 15) / 5); } // Fade out
+                if (age > 20) { scene.remove(decals[i]); decals.splice(i, 1); } 
+                else if (age > 15) { decals[i].material.opacity = 1 - ((age - 15) / 5); } 
             }
 
-            // --- TARGET HUD LOGIC ---
             if (controls.isLocked && !isDead) {
                 raycaster.setFromCamera(screenCenter, camera);
                 const intersects = raycaster.intersectObjects(spawnedObjects);
@@ -618,7 +613,6 @@
                 }
             }
 
-            // --- PROPS & NEXTBOT PHYSICS LOOP ---
             spawnedObjects.forEach(obj => {
                 if (obj.isNextbot) {
                     obj.quaternion.copy(camera.quaternion); 
@@ -666,7 +660,6 @@
                 }
             });
 
-            // --- PHYSGUN BEAM VISUALS ---
             if (currentWeapon === 1 && heldObject && !isDead) {
                 physgunBeamMesh.visible = true;
                 const muzzleLocal = new THREE.Vector3(1.5, -1.0, -2.5);
@@ -680,7 +673,6 @@
                 physgunBeamMesh.geometry.setFromPoints(curve.getPoints(19));
             } else { physgunBeamMesh.visible = false; }
 
-            // --- PLAYER MOVEMENT & CAMERA LOOP ---
             if (controls.isLocked === true && !isPaused && !isSpawnMenuOpen) {
                 if (isDead) {
                     deadCameraVelocity.y -= gravity * delta; 
