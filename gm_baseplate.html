@@ -72,8 +72,7 @@
         }
 
         #viewmodel {
-            position: absolute; bottom: -20px; right: -20px; 
-            width: 60%; max-width: 800px; /* Made the gun much bigger */
+            position: absolute; 
             z-index: 5; pointer-events: none; 
             transform-origin: bottom right;
             display: none; transition: transform 0.1s;
@@ -138,7 +137,7 @@
 
     <div id="loading-overlay">
         <div class="center-stage">
-            <img src="GmodLOGO.png" class="gmod-logo" alt="Garry's Mod">
+            <img src="Garry's_Mod_logo.svg.png" class="gmod-logo" alt="Garry's Mod">
             <div class="notepad-spinner"><div class="eye left"></div><div class="eye right"></div><div class="mouth"></div></div>
         </div>
         <div class="loading-hud">
@@ -171,7 +170,7 @@
 
     <div id="pause-menu">
         <div class="sidebar">
-            <img src="Garry's_Mod_logo.svg.png" style="width: 250px; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.8));" alt="Gmod Logo">
+            <img src="GmodLOGO.png" style="width: 250px; filter: drop-shadow(2px 2px 5px rgba(0,0,0,0.8));" alt="Gmod Logo">
             <div class="menu-items">
                 <button class="menu-btn" id="btn-resume">Resume Game</button>
                 <button class="menu-btn" id="btn-controls">Controls</button>
@@ -186,7 +185,7 @@
     <div id="death-overlay"></div>
     <div id="notification-container"></div>
 
-    <img src="Newtonvm.webp" id="viewmodel" class="physgun-glow" alt="Weapon Viewmodel">
+    <img src="Newtonvm.webp" id="viewmodel" class="physgun-glow" style="width: 45%; max-width: 600px; bottom: -50px; right: -50px;" alt="Weapon Viewmodel">
 
     <div id="target-hud">NPC Name | HP: 100</div>
 
@@ -285,7 +284,10 @@
         const spawnMenu = document.getElementById('spawn-menu');
 
         document.getElementById('btn-resume').addEventListener('click', () => controls.lock());
-        document.getElementById('btn-disconnect').addEventListener('click', () => window.location.reload());
+        // Routing back to the main menu index.html
+        document.getElementById('btn-disconnect').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
         document.getElementById('btn-controls').addEventListener('click', () => {
             alert("🕹️ CONTROLS:\n\nW, A, S, D - Move\nSpace - Jump\nShift - Sprint\nC / Ctrl - Crouch\nV - Toggle Noclip\nQ - Open Spawn Menu\n1, 2 - Switch Weapons\nR - Reload (Gun) / Freeze Prop (Physgun)\nZ - Undo Last Spawn\nLeft Click - Fire / Grab\nRight Click - Throw Object");
         });
@@ -472,11 +474,22 @@
             if (heldObject) dropObject();
             clearInterval(fireInterval); isFiring = false;
 
+            // Dynamically resize and update the image based on weapon slot
             if (slot === 1) {
-                viewmodelImg.src = 'Newtonvm.webp'; viewmodelImg.className = 'physgun-glow';
+                viewmodelImg.src = 'Newtonvm.webp'; 
+                viewmodelImg.className = 'physgun-glow';
+                viewmodelImg.style.width = '45%'; 
+                viewmodelImg.style.maxWidth = '600px';
+                viewmodelImg.style.bottom = '-50px'; 
+                viewmodelImg.style.right = '-50px';
                 ammoHud.style.display = 'none';
             } else if (slot === 2) {
-                viewmodelImg.src = 'download-Picsart-BackgroundRemover.jpeg'; viewmodelImg.className = '';
+                viewmodelImg.src = 'download-Picsart-BackgroundRemover.jpeg'; 
+                viewmodelImg.className = '';
+                viewmodelImg.style.width = '60%'; 
+                viewmodelImg.style.maxWidth = '800px';
+                viewmodelImg.style.bottom = '-20px'; 
+                viewmodelImg.style.right = '-20px';
                 ammoHud.style.display = 'flex'; updateAmmoUI();
             }
         }
